@@ -1,0 +1,118 @@
+openapi: 3.0.3
+info:
+  title: Maliev PDF Service API
+  description: High-performance PDF generation service using QuestPDF.
+  version: 1.0.0
+servers:
+  - url: /pdf/v1
+    description: V1 PDF API
+paths:
+  /generate:
+    post:
+      summary: Synchronous PDF generation
+      description: Generates a PDF and returns the public URL immediately.
+      tags:
+        - Generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerationRequest'
+      responses:
+        '200':
+          description: Successful generation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerationResult'
+        '400':
+          description: Invalid request data
+        '401':
+          description: Unauthorized
+
+  /generate/async:
+    post:
+      summary: Asynchronous PDF generation
+      description: Enqueues a PDF generation task and returns a request ID.
+      tags:
+        - Generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerationRequest'
+      responses:
+        '202':
+          description: Generation task accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requestId:
+                    type: string
+                    format: uuid
+        '401':
+          description: Unauthorized
+
+  /templates:
+    get:
+      summary: List available templates
+      tags:
+        - Templates
+      responses:
+        '200':
+          description: List of templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TemplateSummary'
+
+components:
+  schemas:
+    GenerationRequest:
+      type: object
+      required:
+        - templateCode
+        - referenceId
+        - documentType
+        - data
+      properties:
+        templateCode:
+          type: string
+          example: "INV-STD-01"
+        referenceId:
+          type: string
+          example: "INV-2025-001"
+        documentType:
+          type: string
+          enum: [Quotation, Invoice, Receipt, Report]
+        data:
+          type: object
+          description: Raw data to be mapped to the PDF layout.
+
+    GenerationResult:
+      type: object
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        storageUrl:
+          type: string
+          format: uri
+        status:
+          type: string
+
+    TemplateSummary:
+      type: object
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
