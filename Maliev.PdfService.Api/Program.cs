@@ -16,9 +16,7 @@ builder.AddServiceDefaults();
 builder.Services.AddIAMClient(builder.Configuration, "PdfService");
 
 // --- Database ---
-builder.AddPostgresDbContext<PdfDbContext>(
-    connectionStringName: "PdfDbContext",
-    configureOptions: (Action<DbContextOptionsBuilder>?)null);
+builder.AddPostgresDbContext<PdfDbContext>("PdfDbContext");
 
 // --- Messaging ---
 builder.AddMassTransitWithRabbitMq(x =>
@@ -32,36 +30,31 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApi();
+
+builder.AddStandardOpenApi(
+    title: "MALIEV PDF Service API",
+    description: "PDF generation service for the Maliev platform. Handles document rendering from templates, font resolution, and secure delivery of generated documents.");
 
 // --- API Versioning ---
-builder.Services.AddApiVersioning(options =>
-{
-    options.DefaultApiVersion = new ApiVersion(1, 0);
-    options.AssumeDefaultVersionWhenUnspecified = true;
-    options.ReportApiVersions = true;
-    options.ApiVersionReader = new UrlSegmentApiVersionReader();
-}).AddMvc();
+builder.AddDefaultApiVersioning();
 
 // --- PDF Engine Settings ---
 QuestPDF.Settings.License = LicenseType.Community;
 
 // --- Custom Services ---
 builder.Services.AddSingleton<PdfMetrics>();
-builder.Services.AddHttpClient<IUploadServiceClient, UploadServiceClient>(client =>
-{
-    var baseUrl = builder.Configuration["ExternalServices:UploadService:BaseUrl"] ?? "http://maliev-uploadservice-api:8080";
-    client.BaseAddress = new Uri(baseUrl);
-})
-.AddStandardResilienceHandler();
+builder.AddServiceClient<IUploadServiceClient, UploadServiceClient>("UploadService");
 
 builder.Services.AddScoped<IDocumentFactory, DocumentFactory>();
 builder.Services.AddScoped<IPdfGenerator, PdfGenerator>();
 builder.Services.AddSingleton<IFontResolver, FontResolver>();
-builder.Services.AddHostedService<PdfIAMRegistrationService>();
+builder.Services.AddIAMRegistration<PdfIAMRegistrationService>();
 
 var app = builder.Build();
+
+// --- Maliev Standard Middleware ---
+app.UseStandardMiddleware();
+app.UseCors();
 
 // --- Initialize PDF Engine ---
 using (var scope = app.Services.CreateScope())
@@ -71,18 +64,27 @@ using (var scope = app.Services.CreateScope())
 }
 
 // --- Middleware Pipeline ---
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
-
-// Map endpoints with /pdf prefix
-app.MapControllers();
 
 // Map Aspire default endpoints
 app.MapDefaultEndpoints("pdf");
+
+// Map OpenAPI and Scalar documentation (dev/staging only)
+app.MapApiDocumentation(servicePrefix: "pdf");
+
+// Run migrations on startup
+try
+{
+    await app.MigrateDatabaseAsync<PdfDbContext>();
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Error applying migrations: {ex.Message}");
+}
+
+// Map endpoints with /pdf prefix
+app.MapControllers();
 
 app.Run();

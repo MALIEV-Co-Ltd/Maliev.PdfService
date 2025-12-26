@@ -150,5 +150,13 @@ out/
 .env.production.local
 .env*.local
 
+.claude/settings.local.json
+.gemini/settings.local.json
+
 # macOS files
 .DS_Store
+
+# Test Outputs
+*test-output.txt
+*_error.txt
+

@@ -8,7 +8,7 @@ using Asp.Versioning;
 namespace Maliev.PdfService.Api.Controllers;
 
 [ApiVersion("1.0")]
-[Route("pdf/v{version:apiVersion}")]
+[Route("pdf/v{version:apiVersion}/generations")]
 [ApiController]
 public class GenerationController : ControllerBase
 {
