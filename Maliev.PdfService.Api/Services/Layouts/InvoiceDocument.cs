@@ -22,7 +22,7 @@ public class InvoiceDocument : IDocument
         {
             page.Margin(50);
             page.DefaultTextStyle(x => x.FontFamily("Kanit"));
-            
+
             page.Header().Row(row =>
             {
                 row.RelativeItem().Column(col =>

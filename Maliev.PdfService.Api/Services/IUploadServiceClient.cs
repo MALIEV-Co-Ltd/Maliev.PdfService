@@ -21,17 +21,17 @@ public class UploadServiceClient : IUploadServiceClient
     public async Task<string> UploadFileAsync(string fileName, byte[] content, string contentType, string storagePath, CancellationToken cancellationToken = default)
     {
         using var requestContent = new MultipartFormDataContent();
-        
+
         var fileContent = new ByteArrayContent(content);
         fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
         requestContent.Add(fileContent, "File", fileName);
-        
+
         requestContent.Add(new StringContent(storagePath), "Path");
         requestContent.Add(new StringContent("PdfService"), "ServiceName");
         requestContent.Add(new StringContent("true"), "Overwrite");
 
         var response = await _httpClient.PostAsync("upload/v1/uploads", requestContent, cancellationToken);
-        
+
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync(cancellationToken);

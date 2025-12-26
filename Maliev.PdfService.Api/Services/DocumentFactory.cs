@@ -27,14 +27,14 @@ public class DocumentFactory : IDocumentFactory
     private IDocument CreateInvoiceDocument(object data)
     {
         if (data is InvoiceData invoiceData) return new InvoiceDocument(invoiceData);
-        
+
         // Handle JsonElement or other types by serializing/deserializing to concrete DTO
         var json = System.Text.Json.JsonSerializer.Serialize(data);
         var mapped = System.Text.Json.JsonSerializer.Deserialize<InvoiceData>(json, new System.Text.Json.JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
         }) ?? throw new InvalidOperationException("Failed to map invoice data");
-        
+
         return new InvoiceDocument(mapped);
     }
 }

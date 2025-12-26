@@ -27,10 +27,10 @@ public class GenerationController : ControllerBase
     public async Task<IActionResult> Generate([FromBody] GeneratePdfRequest request)
     {
         var pdfBytes = await _pdfGenerator.GeneratePdfAsync(request.DocumentType, request.Data);
-        
+
         var fileName = $"{request.DocumentType}_{request.ReferenceId}_{Guid.NewGuid()}.pdf";
         var storagePath = $"pdfs/{request.DocumentType.ToString().ToLower()}/{request.ReferenceId}/{fileName}";
-        
+
         var url = await _uploadService.UploadFileAsync(fileName, pdfBytes, "application/pdf", storagePath);
 
         var log = new GenerationRequest
@@ -65,7 +65,7 @@ public class GenerationController : ControllerBase
 
         // In a real implementation, this would enqueue a background job or publish a message
         // For MVP, we'll just return the accepted status
-        
+
         return Accepted(new { requestId = log.Id });
     }
 }

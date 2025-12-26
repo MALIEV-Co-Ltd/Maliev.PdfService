@@ -21,7 +21,7 @@ public class QuotationDocument : IDocument
         {
             page.Margin(50);
             page.DefaultTextStyle(x => x.FontFamily("Kanit"));
-            
+
             page.Header().Text("QUOTATION").FontSize(20).SemiBold();
             page.Content().Text("Quotation details would go here.");
         });
