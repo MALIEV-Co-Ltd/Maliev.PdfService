@@ -7,7 +7,7 @@ public class PdfIAMRegistrationService : IAMRegistrationService
     public PdfIAMRegistrationService(
         IHttpClientFactory httpClientFactory,
         ILogger<PdfIAMRegistrationService> logger)
-        : base(httpClientFactory, logger, "PdfService")
+        : base(httpClientFactory, logger, "pdf")
     {
     }
 

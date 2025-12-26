@@ -34,7 +34,7 @@ public class FontResolverTests
         _envMock.Setup(x => x.ContentRootPath).Returns(tempPath);
 
         // Act & Assert
-        try 
+        try
         {
             _resolver.RegisterFonts();
         }

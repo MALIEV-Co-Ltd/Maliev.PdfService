@@ -23,7 +23,7 @@ public class PdfTemplatesController : ControllerBase
         var templates = await _dbContext.PdfTemplates
             .Select(t => new { t.Code, t.Name, t.CreatedAt })
             .ToListAsync();
-            
+
         return Ok(templates);
     }
 }

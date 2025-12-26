@@ -43,7 +43,7 @@ public class SyncGenerationTests : IClassFixture<BaseIntegrationTestFactory<Prog
         };
 
         // Act
-        var response = await client.PostAsJsonAsync("/pdf/v1/generate", request);
+        var response = await client.PostAsJsonAsync("/pdf/v1/generations/generate", request);
 
         // Assert
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);

@@ -40,7 +40,7 @@ public class AsyncGenerationTests : IClassFixture<BaseIntegrationTestFactory<Pro
         };
 
         // Act
-        var response = await client.PostAsJsonAsync("/pdf/v1/generate/async", request);
+        var response = await client.PostAsJsonAsync("/pdf/v1/generations/generate/async", request);
 
         // Assert
         Assert.Equal(System.Net.HttpStatusCode.Accepted, response.StatusCode);

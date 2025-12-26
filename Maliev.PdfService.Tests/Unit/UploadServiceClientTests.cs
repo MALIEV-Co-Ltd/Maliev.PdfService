@@ -63,7 +63,7 @@ public class UploadServiceClientTests
             });
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _client.UploadFileAsync("file.pdf", new byte[] { 1 }, "application/pdf", "folder/file.pdf"));
     }
 }

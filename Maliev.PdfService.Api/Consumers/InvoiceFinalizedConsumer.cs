@@ -28,10 +28,10 @@ public class InvoiceFinalizedConsumer : IConsumer<InvoiceFinalizedEvent>
         try
         {
             var pdfBytes = await _pdfGenerator.GeneratePdfAsync(DocumentType.Invoice, message.InvoiceData);
-            
+
             var fileName = $"Invoice_{message.InvoiceNumber}_{Guid.NewGuid()}.pdf";
             var storagePath = $"pdfs/invoice/{message.InvoiceId}/{fileName}";
-            
+
             await _uploadService.UploadFileAsync(fileName, pdfBytes, "application/pdf", storagePath);
 
             _logger.LogInformation("Successfully generated and uploaded PDF for invoice: {InvoiceNumber}", message.InvoiceNumber);

@@ -22,7 +22,7 @@ public class FontResolver : IFontResolver
     {
         // Path to embedded or local fonts
         var fontsPath = Path.Combine(_env.ContentRootPath, "Resources", "Fonts");
-        
+
         if (Directory.Exists(fontsPath))
         {
             var regularPath = Path.Combine(fontsPath, "Kanit-Regular.ttf");
