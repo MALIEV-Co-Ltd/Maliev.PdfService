@@ -24,7 +24,7 @@ public class PdfIAMRegistrationServiceTests
     }
 
     [Fact]
-    public async Task StartAsync_CallsIAMRegister()
+    public async Task RegisterAsync_CallsIAMRegister()
     {
         // Arrange
         _handlerMock.Protected()
@@ -41,7 +41,7 @@ public class PdfIAMRegistrationServiceTests
         var service = new PdfIAMRegistrationService(_httpClientFactoryMock.Object, _loggerMock.Object);
 
         // Act
-        await service.StartAsync(CancellationToken.None);
+        await service.RegisterAsync(CancellationToken.None);
 
         // Assert
         _handlerMock.Protected().Verify(
@@ -52,7 +52,7 @@ public class PdfIAMRegistrationServiceTests
     }
 
     [Fact]
-    public async Task StartAsync_DoesNotThrow_OnFailure()
+    public async Task RegisterAsync_Throws_OnFailure()
     {
         // Arrange
         _handlerMock.Protected()
@@ -64,7 +64,7 @@ public class PdfIAMRegistrationServiceTests
 
         var service = new PdfIAMRegistrationService(_httpClientFactoryMock.Object, _loggerMock.Object);
 
-        // Act & Assert (Should not throw as per base class implementation)
-        await service.StartAsync(CancellationToken.None);
+        // Act & Assert
+        await Assert.ThrowsAsync<Exception>(() => service.RegisterAsync(CancellationToken.None));
     }
 }
