@@ -75,14 +75,7 @@ app.MapDefaultEndpoints("pdf");
 app.MapApiDocumentation(servicePrefix: "pdf");
 
 // Run migrations on startup
-try
-{
-    await app.MigrateDatabaseAsync<PdfDbContext>();
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"Error applying migrations: {ex.Message}");
-}
+await app.MigrateDatabaseAsync<PdfDbContext>();
 
 // Map endpoints with /pdf prefix
 app.MapControllers();
