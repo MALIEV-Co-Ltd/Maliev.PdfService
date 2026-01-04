@@ -109,20 +109,21 @@ public class BaseIntegrationTestFactory<TProgram, TDbContext> : WebApplicationFa
             InitializeAsync().GetAwaiter().GetResult();
         }
 
-        // Set environment variables BEFORE host builder processes configuration
-        // Note: Connection strings are now injected via ConfigureAppConfiguration in ConfigureWebHost
-        // to ensure they are available during host building causing Program.cs to see them.
-
-
         // Export RSA public key for JWT validation
         var rsaParams = _testRsa.ExportParameters(false);
         Environment.SetEnvironmentVariable("JWT_PUBLIC_KEY_MODULUS", Convert.ToBase64String(rsaParams.Modulus!));
         Environment.SetEnvironmentVariable("JWT_PUBLIC_KEY_EXPONENT", Convert.ToBase64String(rsaParams.Exponent!));
 
+        // Also set the format expected by some Aspire helpers (raw base64 of public key info)
+        var keyBytes = _testRsa.ExportSubjectPublicKeyInfo();
+        Environment.SetEnvironmentVariable("Authentication__Jwt__PublicKey", Convert.ToBase64String(keyBytes));
+
         // Allow derived classes to set additional environment variables
         ConfigureEnvironmentVariables();
 
-        return base.CreateHost(builder);
+        var host = base.CreateHost(builder);
+
+        return host;
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -147,6 +148,19 @@ public class BaseIntegrationTestFactory<TProgram, TDbContext> : WebApplicationFa
 
             // Add MassTransit test harness for testing message publishing/consuming
             services.AddMassTransitTestHarness();
+
+            // Selectively remove domain background services if any are added in the future
+            // Infrastructure background services (MassTransit, IAM registration) are kept
+            // to ensure health checks pass.
+            var hostedServices = services.Where(d => d.ServiceType == typeof(IHostedService)).ToList();
+            foreach (var service in hostedServices)
+            {
+                var typeName = service.ImplementationType?.Name ??
+                              service.ImplementationFactory?.Method.ReturnType.Name ?? "";
+
+                // Add any domain-specific background services here if they interfere with tests
+                // if (typeName.Contains("SomeHeavyDomainService")) { services.Remove(service); }
+            }
 
             // Allow derived classes to add additional test services
             ConfigureAdditionalServices(services);
