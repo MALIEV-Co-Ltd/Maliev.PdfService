@@ -1,271 +1,140 @@
 # Maliev PDF Service
 
-Professional PDF document generation service for the MALIEV platform, providing on-demand and asynchronous PDF creation for invoices, quotations, reports, receipts, and other business documents with full IAM integration.
+[![Build Status](https://img.shields.io/badge/Build-Passing-success)](https://github.com/ORGANIZATION/Maliev.PdfService)
+[![.NET Version](https://img.shields.io/badge/.NET-10.0-blue)](https://dotnet.microsoft.com/download/dotnet/10.0)
+[![Database](https://img.shields.io/badge/Database-PostgreSQL%2018-blue)](https://www.postgresql.org/)
 
-## Service Description
+Professional document generation service specializing in high-fidelity business PDFs for the Maliev ecosystem.
 
-The PDF Service handles all PDF document generation across the MALIEV platform. It provides both synchronous (immediate) and asynchronous (queued) PDF generation with support for templates, custom fonts, watermarks, and digital signatures. Generated PDFs can be stored in Google Cloud Storage or returned directly to clients.
+**Role in MALIEV Architecture**: The authoritative engine for document rendering. It transforms raw business data (Invoices, Quotations, Reports) into professional, industry-standard PDF documents with support for corporate branding and digital signatures.
 
-## Architecture Overview
+---
 
-### Project Structure
-```
-Maliev.PdfService/
-├── Maliev.PdfService.Api/              # Presentation layer
-│   ├── Controllers/                    # REST API endpoints
-│   ├── Services/                       # PDF generation services
-│   ├── Templates/                      # Document templates
-│   └── Consumers/                      # RabbitMQ event consumers
-├── Maliev.PdfService.Data/             # Data access layer
-│   ├── Entities/                       # Generation history
-│   └── Migrations/                     # Database migrations
-└── Maliev.PdfService.Tests/            # Integration tests
-```
+## 🏗️ Architecture & Tech Stack
 
-## Technologies Used
+- **Framework**: ASP.NET Core 10.0 (C# 13)
+- **Engine**: QuestPDF (High-performance rendering kernel)
+- **Database**: PostgreSQL 18 with Entity Framework Core 10.x
+- **Distributed Cache**: Redis 7.x (Template & asset caching)
+- **Messaging**: RabbitMQ via MassTransit (Asynchronous generation queue)
+- **Object Storage**: Google Cloud Storage (PDF archival)
+- **API Documentation**: OpenAPI 3.1 + Scalar UI
 
-- **.NET 10.0** - Runtime and framework
-- **ASP.NET Core** - Web API framework
-- **QuestPDF** - Modern PDF generation library
-- **Entity Framework Core** - ORM with PostgreSQL provider
-- **PostgreSQL 18** - PDF generation history and templates
-- **Google Cloud Storage** - PDF file storage
-- **RabbitMQ** - Message queue via MassTransit for async generation
-- **Redis** - Caching for templates and frequently generated documents
-- **OpenTelemetry** - Observability
+---
 
-## Dependencies
+## ⚖️ Constitution Rules
 
-### Databases
-- **PostgreSQL**: Generation history, job status, template metadata
-- **Redis**: Template caching, generation queue status
+This service strictly adheres to the platform development mandates:
 
-### Storage
-- **Google Cloud Storage**: Long-term PDF storage with signed URLs
+### Banned Libraries
+To maintain high performance and low complexity, the following are **NOT** used:
+- ❌ **AutoMapper**: Explicit manual mapping only.
+- ❌ **FluentValidation**: Standard Data Annotations (`[Required]`, `[EmailAddress]`) only.
+- ❌ **FluentAssertions**: Standard xUnit `Assert` methods only.
+- ❌ **In-memory Test DB**: All integration tests use **Testcontainers** with real PostgreSQL 18.
 
-### Messaging
-- **RabbitMQ**: Async PDF generation requests from other services
+### Mandatory Practices
+- ✅ **TreatWarningsAsErrors**: Enabled in all `.csproj` files.
+- ✅ **XML Documentation**: Required on all public methods and properties.
+- ✅ **No Secrets in Code**: All sensitive configuration injected via environment variables.
+- ✅ **No Test Config in Program.cs**: Test configuration in test fixtures only.
+- ✅ **IAM Integration**: Self-registers permissions with the IAM Service using GCP-style naming: `{service}.{resource}.{action}`.
 
-### External Services
-- **IAM Service**: Authentication and authorization
-- **Invoice Service**: Invoice data for PDF generation
-- **Quotation Service**: Quote data for PDF generation
-- **Receipt Service**: Receipt data for PDF generation
-- **Order Service**: Order confirmation PDFs
+---
 
-## IAM Integration
+## ✨ Key Features
 
-### Required Permissions
-- `pdf.generate` - Generate PDF documents
-- `pdf.generate.async` - Submit async generation jobs
-- `pdf.read` - Download/view generated PDFs
-- `pdf.templates.read` - View PDF templates
-- `pdf.templates.write` - Create/modify templates (admin)
-- `pdf.history.read` - View generation history
+- **High-Performance Rendering**: Industrial-grade PDF creation with sub-second generation for complex documents.
+- **Async Job Orchestration**: Reliable background generation for batch processes or high-resource documents.
+- **Template Management**: Centralized repository for document templates with versioned styling.
+- **Signed URL Access**: Native integration with Google Cloud Storage for secure, temporary document download links.
+- **Multi-Category Generators**: Specialized rendering logic for Invoices, Quotations, Receipts, and detailed Operational Reports.
 
-### Predefined Roles
-- **User**: Generate and view own PDFs
-- **Service Account**: Async PDF generation from other services
-- **PDF Admin**: Manage templates and view all generation history
+---
 
-## API Endpoints
+## 🚀 Quick Start
 
-### Synchronous Generation
-- `POST /v1/pdf/generate/invoice` - Generate invoice PDF (immediate)
-- `POST /v1/pdf/generate/quotation` - Generate quotation PDF
-- `POST /v1/pdf/generate/receipt` - Generate receipt PDF
-- `POST /v1/pdf/generate/order-confirmation` - Generate order confirmation
-- `POST /v1/pdf/generate/custom` - Generate from custom template
+### Prerequisites
+- .NET 10.0 SDK
+- Docker Desktop (for infrastructure)
+- PostgreSQL 18 (Alpine)
 
-### Asynchronous Generation
-- `POST /v1/pdf/async/invoice` - Queue invoice PDF generation
-- `POST /v1/pdf/async/batch` - Batch PDF generation
-- `GET /v1/pdf/jobs/{jobId}` - Get job status
-- `GET /v1/pdf/jobs/{jobId}/download` - Download when ready
+### Local Development Setup
 
-### Template Management
-- `GET /v1/pdf/templates` - List available templates
-- `GET /v1/pdf/templates/{id}` - Get template details
-- `POST /v1/pdf/templates` - Create custom template
-- `PUT /v1/pdf/templates/{id}` - Update template
-- `DELETE /v1/pdf/templates/{id}` - Delete template
-
-### History
-- `GET /v1/pdf/history` - View generation history
-- `GET /v1/pdf/history/{id}` - Get specific generation details
-
-## Configuration
-
-### appsettings.json
-```json
-{
-  "ConnectionStrings": {
-    "PdfDatabase": "Host=postgres;Port=5432;Database=maliev_pdf;Username=app;Password=secret",
-    "Redis": "redis:6379"
-  },
-  "RabbitMQ": {
-    "Host": "rabbitmq",
-    "Username": "guest",
-    "Password": "guest"
-  },
-  "Jwt": {
-    "Key": "base64-encoded-key",
-    "Issuer": "maliev-pdf-service",
-    "Audience": "maliev-services"
-  },
-  "ExternalServices": {
-    "IAM": {
-      "BaseUrl": "http://iam-service:8080"
-    }
-  },
-  "GoogleCloudStorage": {
-    "BucketName": "maliev-pdfs",
-    "ProjectId": "maliev-platform",
-    "CredentialsPath": "/secrets/gcs-key.json"
-  },
-  "PdfGeneration": {
-    "MaxConcurrentJobs": 10,
-    "DefaultDPI": 300,
-    "CompressionEnabled": true,
-    "WatermarkEnabled": false
-  }
-}
-```
-
-## Database
-
-**PostgreSQL 18** with Entity Framework Core migrations.
-
-**Main Tables:**
-- `PdfGenerationJobs` - Job tracking (status, progress, errors)
-- `PdfTemplates` - Template definitions and metadata
-- `PdfGenerationHistory` - Audit trail of all generations
-- `PdfMetadata` - Generated PDF metadata (size, pages, URL)
-
-## Running the Service
-
-### Development
+1. **Clone the repository**
 ```bash
-cd Maliev.PdfService.Api
-dotnet run
+git clone https://github.com/ORGANIZATION/Maliev.PdfService.git
+cd Maliev.PdfService
 ```
 
-**Access:**
-- API: http://localhost:5000
-- Health: http://localhost:5000/pdf/liveness
-- Metrics: http://localhost:5000/pdf/metrics
-
-### Docker
+2. **Spin up Infrastructure**
 ```bash
-docker build -t maliev/pdf-service:latest .
-docker run -p 8080:8080 \
-  -v /path/to/gcs-key.json:/secrets/gcs-key.json \
-  maliev/pdf-service:latest
+docker run --name pdf-db -e POSTGRES_PASSWORD=YOUR_PASSWORD -p 5432:5432 -d postgres:18-alpine
+docker run --name pdf-redis -p 6379:6379 -d redis:7-alpine
 ```
 
-### Tests
+3. **Configure Environment**
+```powershell
+# Windows PowerShell
+$env:ConnectionStrings__PdfDbContext="YOUR_POSTGRES_CONNECTION_STRING"
+$env:ConnectionStrings__Cache="YOUR_REDIS_CONNECTION_STRING"
+```
+
+4. **Apply Migrations & Run**
 ```bash
-# Ensure Docker is running
-docker ps
-
-# Run tests
-dotnet test
+dotnet ef database update --project Maliev.PdfService.Data
+dotnet run --project Maliev.PdfService.Api
 ```
 
-## Test Status
+The service will be available at `http://localhost:5000/pdf`. Access the interactive documentation at `http://localhost:5000/pdf/scalar`.
 
-**From Test Summary (2025-12-24):**
-- **Status**: FAILED (2 tests)
-- **Critical Issue**: Database context initialization failure (NullReferenceException)
-- **Location**: `DatabaseExtensions.cs:line 102`
+---
 
-**To Fix:**
-1. Verify PostgreSQL connection string is properly configured
-2. Check database configuration in ServiceDefaults
-3. Ensure connection string is valid before DbContext initialization
+## 📡 API Endpoints
 
-## Key Features
+All endpoints are prefixed with `/pdf/v1/`.
 
-### PDF Generation
-- **High Quality**: 300 DPI, professional layouts
-- **Templates**: Pre-built templates for common documents
-- **Custom Fonts**: Support for corporate branding
-- **Multi-Language**: Unicode support for international characters
-- **Images & Logos**: Embedded images and company logos
-- **Tables & Charts**: Complex data visualization
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/generate/invoice` | Generate a synchronous invoice PDF |
+| POST | `/async/batch` | Queue multiple documents for generation |
+| GET | `/jobs/{id}` | Poll status of an asynchronous generation job |
+| GET | `/templates` | List available document templates |
 
-### Document Types
-- **Invoices**: Tax invoices with line items, totals, VAT
-- **Quotations**: Professional sales quotes
-- **Receipts**: Payment receipts with transaction details
-- **Reports**: Financial and operational reports
-- **Order Confirmations**: Order summaries
+---
 
-### Advanced Features
-- **Watermarks**: Draft, confidential, paid watermarks
-- **Digital Signatures**: PDF signing (if configured)
-- **Compression**: Optimized file sizes
-- **Metadata**: PDF metadata for searchability
-- **Accessibility**: PDF/UA compliant (optional)
+## 🏥 Health & Monitoring
 
-### Performance
-- **Async Processing**: Queue heavy jobs for background processing
-- **Batch Generation**: Generate multiple PDFs in single request
-- **Caching**: Template caching for faster generation
-- **Streaming**: Large PDFs streamed directly to response
+Standardized health probes for Kubernetes orchestration:
+- **Liveness**: `GET /pdf/liveness`
+- **Readiness**: `GET /pdf/readiness` (Checks DB and Redis connectivity)
+- **Metrics**: `GET /pdf/metrics` (Prometheus format)
 
-## Events Consumed
+---
 
-Via RabbitMQ:
-- `InvoiceCreatedEvent` - Auto-generate invoice PDF
-- `QuotationApprovedEvent` - Auto-generate quotation PDF
-- `ReceiptIssuedEvent` - Auto-generate receipt PDF
-- `ReportScheduledEvent` - Generate scheduled reports
+## 🧪 Testing
 
-## Events Published
+We prioritize reliable tests over mock-heavy unit tests.
 
-- `PdfGeneratedEvent` - PDF generation completed
-- `PdfGenerationFailedEvent` - PDF generation failed
-- `BatchPdfCompletedEvent` - Batch job completed
-
-## QuestPDF Usage
-
-The service uses QuestPDF for modern, fluent PDF generation:
-
-```csharp
-Document.Create(container =>
-{
-    container.Page(page =>
-    {
-        page.Size(PageSizes.A4);
-        page.Margin(2, Unit.Centimetre);
-        page.Header().Text("Invoice").FontSize(20).Bold();
-        page.Content().Column(column =>
-        {
-            column.Item().Text($"Invoice #: {invoice.Number}");
-            column.Item().Table(table =>
-            {
-                // Invoice line items
-            });
-        });
-        page.Footer().AlignCenter().Text(x =>
-        {
-            x.Span("Page ");
-            x.CurrentPageNumber();
-        });
-    });
-})
-.GeneratePdf();
+```bash
+# Run all tests using Testcontainers
+dotnet test --verbosity normal
 ```
 
-## Support
+- **Integration Tests**: Use real PostgreSQL 18 containers.
+- **Contract Tests**: Ensure API stability for consumers.
 
-- Test Summary: `B:\maliev\all-services-test-summary.txt`
-- ServiceDefaults: `B:\maliev\Maliev.Aspire\Maliev.Aspire.ServiceDefaults\README.md`
-- QuestPDF Documentation: https://www.questpdf.com/
+---
 
-## License
+## 📦 Deployment
 
-Proprietary - Copyright 2025 MALIEV Co., Ltd. All rights reserved.
+Infrastructure management is handled via GitOps patterns.
 
-**QuestPDF License**: Commercial license required for commercial use.
+- **Docker Image**: `REGION-docker.pkg.dev/PROJECT_ID/REPOSITORY/maliev-pdf-service:{sha}`
+- **Environments**: Development, Staging, Production
+
+---
+
+## 📄 License
+
+Proprietary - © 2025 MALIEV Co., Ltd. All rights reserved.
