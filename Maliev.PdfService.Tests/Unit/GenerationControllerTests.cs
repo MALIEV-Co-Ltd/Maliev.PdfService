@@ -5,7 +5,9 @@ using Maliev.PdfService.Data.Data;
 using Maliev.PdfService.Data.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Moq;
+using MassTransit;
 using System.Text.Json;
 using Xunit;
 
@@ -15,6 +17,8 @@ public class GenerationControllerTests
 {
     private readonly Mock<IPdfGenerator> _pdfGeneratorMock = new();
     private readonly Mock<IUploadServiceClient> _uploadServiceMock = new();
+    private readonly Mock<IPublishEndpoint> _publishEndpointMock = new();
+    private readonly Mock<ILogger<GenerationController>> _loggerMock = new();
     private readonly PdfDbContext _dbContext;
     private readonly GenerationController _controller;
 
@@ -24,7 +28,12 @@ public class GenerationControllerTests
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
         _dbContext = new PdfDbContext(options);
-        _controller = new GenerationController(_pdfGeneratorMock.Object, _uploadServiceMock.Object, _dbContext);
+        _controller = new GenerationController(
+            _pdfGeneratorMock.Object,
+            _uploadServiceMock.Object,
+            _dbContext,
+            _publishEndpointMock.Object,
+            _loggerMock.Object);
     }
 
     [Fact]
@@ -96,10 +105,16 @@ public class GenerationControllerTests
         _pdfGeneratorMock.Setup(x => x.GeneratePdfAsync(It.IsAny<DocumentType>(), It.IsAny<object>(), null))
             .ThrowsAsync(new Exception("Generation failed"));
 
-        // Act & Assert
-        // The controller doesn't currently have a try-catch for generic exceptions, 
-        // it relies on global exception handler. 
-        // But we can check if it throws.
-        await Assert.ThrowsAsync<Exception>(() => _controller.Generate(request));
+        // Act
+        var result = await _controller.Generate(request);
+
+        // Assert
+        var statusCodeResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(500, statusCodeResult.StatusCode);
+        var count = await _dbContext.GenerationRequests.CountAsync();
+        Assert.Equal(1, count);
+        var saved = await _dbContext.GenerationRequests.FirstAsync();
+        Assert.Equal(GenerationStatus.Failed, saved.Status);
+        Assert.Equal("Generation failed", saved.ErrorMessage);
     }
 }

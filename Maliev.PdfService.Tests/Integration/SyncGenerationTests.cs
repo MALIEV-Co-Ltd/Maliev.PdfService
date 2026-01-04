@@ -6,15 +6,16 @@ using Moq;
 using Maliev.PdfService.Api.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.TestHost;
+using PdfProgram = Maliev.PdfService.Api.Program;
 
 namespace Maliev.PdfService.Tests.Integration;
 
-public class SyncGenerationTests : IClassFixture<BaseIntegrationTestFactory<Program, PdfDbContext>>
+public class SyncGenerationTests : IClassFixture<BaseIntegrationTestFactory<PdfProgram, PdfDbContext>>
 {
-    private readonly BaseIntegrationTestFactory<Program, PdfDbContext> _factory;
+    private readonly BaseIntegrationTestFactory<PdfProgram, PdfDbContext> _factory;
     private readonly Mock<IUploadServiceClient> _uploadServiceMock = new();
 
-    public SyncGenerationTests(BaseIntegrationTestFactory<Program, PdfDbContext> factory)
+    public SyncGenerationTests(BaseIntegrationTestFactory<PdfProgram, PdfDbContext> factory)
     {
         _factory = factory;
     }

@@ -1,0 +1,46 @@
+using Maliev.MessagingContracts.Generated;
+using Maliev.PdfService.Data.Data;
+using MassTransit;
+using Microsoft.EntityFrameworkCore;
+
+namespace Maliev.PdfService.Api.Consumers;
+
+/// <summary>
+/// Consumes FileDeletedEvent to clean up local storage URLs in Pdf Service.
+/// </summary>
+public class FileDeletedEventConsumer : IConsumer<FileDeletedEvent>
+{
+    private readonly PdfDbContext _dbContext;
+    private readonly ILogger<FileDeletedEventConsumer> _logger;
+
+    public FileDeletedEventConsumer(PdfDbContext dbContext, ILogger<FileDeletedEventConsumer> logger)
+    {
+        _dbContext = dbContext;
+        _logger = logger;
+    }
+
+    public async Task Consume(ConsumeContext<FileDeletedEvent> context)
+    {
+        var payload = context.Message.Payload;
+
+        _logger.LogInformation("Processing FileDeletedEvent for FileId: {FileId}, StoragePath: {StoragePath}",
+            payload.FileId, payload.StoragePath);
+
+        // Find generation requests referencing this storage path or file ID
+        var requests = await _dbContext.GenerationRequests
+            .Where(r => r.StorageUrl != null && (r.StorageUrl.Contains(payload.FileId) || r.StorageUrl.Contains(payload.StoragePath)))
+            .ToListAsync();
+
+        if (requests.Any())
+        {
+            foreach (var req in requests)
+            {
+                req.StorageUrl = null;
+                // Optionally mark as failed or just clear URL
+            }
+
+            await _dbContext.SaveChangesAsync();
+            _logger.LogInformation("Cleared StorageUrl for {Count} PDF generation requests.", requests.Count);
+        }
+    }
+}

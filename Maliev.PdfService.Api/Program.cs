@@ -22,6 +22,7 @@ builder.AddPostgresDbContext<PdfDbContext>("PdfDbContext");
 builder.AddMassTransitWithRabbitMq(x =>
 {
     x.AddConsumer<Maliev.PdfService.Api.Consumers.InvoiceFinalizedConsumer>();
+    x.AddConsumer<Maliev.PdfService.Api.Consumers.FileDeletedEventConsumer>();
 });
 
 // --- API Configuration ---
@@ -81,3 +82,9 @@ await app.MigrateDatabaseAsync<PdfDbContext>();
 app.MapControllers();
 
 app.Run();
+
+// Make Program class accessible to test projects
+namespace Maliev.PdfService.Api
+{
+    public partial class Program { }
+}
