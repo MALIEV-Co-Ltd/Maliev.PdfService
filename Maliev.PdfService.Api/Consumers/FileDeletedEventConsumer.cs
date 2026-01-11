@@ -16,10 +16,10 @@ public class FileDeletedEventConsumer : IConsumer<FileDeletedEvent>
     /// <summary>
     /// Initializes a new instance of the <see cref="FileDeletedEventConsumer"/> class.
     /// </summary>
-    public FileDeletedEventConsumer(PdfDbContext dbContext, ILogger<FileDeletedEventConsumer> _logger)
+    public FileDeletedEventConsumer(PdfDbContext dbContext, ILogger<FileDeletedEventConsumer> logger)
     {
         _dbContext = dbContext;
-        this._logger = _logger;
+        _logger = logger;
     }
 
     /// <inheritdoc/>

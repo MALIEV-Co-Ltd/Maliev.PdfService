@@ -65,7 +65,8 @@ public class GenerationController : ControllerBase
         _dbContext.GenerationRequests.Add(log);
         await _dbContext.SaveChangesAsync();
 
-        var correlationId = HttpContext?.Items["CorrelationId"] as string ?? Guid.NewGuid().ToString();
+        var correlationIdStr = HttpContext?.Items["CorrelationId"] as string ?? Guid.NewGuid().ToString();
+        var correlationId = Guid.Parse(correlationIdStr);
 
         try
         {
@@ -90,7 +91,7 @@ public class GenerationController : ControllerBase
                 MessageVersion: "1.0.0",
                 PublishedBy: "PdfService",
                 ConsumedBy: ["InvoiceService", "QuotationService", "ReceiptService"],
-                CorrelationId: Guid.Parse(correlationId),
+                CorrelationId: correlationId,
                 CausationId: null,
                 OccurredAtUtc: DateTimeOffset.UtcNow,
                 IsPublic: false,
@@ -123,7 +124,7 @@ public class GenerationController : ControllerBase
                 MessageVersion: "1.0.0",
                 PublishedBy: "PdfService",
                 ConsumedBy: ["InvoiceService", "QuotationService", "ReceiptService"],
-                CorrelationId: Guid.Parse(correlationId),
+                CorrelationId: correlationId,
                 CausationId: null,
                 OccurredAtUtc: DateTimeOffset.UtcNow,
                 IsPublic: false,
@@ -155,6 +156,7 @@ public class GenerationController : ControllerBase
             TemplateCode = request.TemplateCode,
             DocumentType = request.DocumentType,
             Status = GenerationStatus.Pending,
+            DataJson = request.Data.GetRawText(),
             CreatedAt = DateTime.UtcNow
         };
 

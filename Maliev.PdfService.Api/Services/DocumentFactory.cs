@@ -49,7 +49,7 @@ public class DocumentFactory : IDocumentFactory
             }) ?? throw new InvalidOperationException($"Failed to deserialize {nameof(InvoiceData)} from JsonElement");
         }
 
-        throw new InvalidOperationException($"Data must be of type {nameof(InvoiceData)} or JsonElement representing it.");
+        throw new InvalidOperationException($"Data must be of type {nameof(InvoiceData)} or JsonElement representing it. Actual type: {data?.GetType().Name ?? "null"}");
     }
 
     private static QuotationData MapToQuotationData(object data)
@@ -64,6 +64,6 @@ public class DocumentFactory : IDocumentFactory
             }) ?? throw new InvalidOperationException($"Failed to deserialize {nameof(QuotationData)} from JsonElement");
         }
 
-        throw new InvalidOperationException($"Data must be of type {nameof(QuotationData)} or JsonElement representing it.");
+        throw new InvalidOperationException($"Data must be of type {nameof(QuotationData)} or JsonElement representing it. Actual type: {data?.GetType().Name ?? "null"}");
     }
 }

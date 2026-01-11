@@ -29,6 +29,9 @@ public class GenerationRequest
     [Required]
     public GenerationStatus Status { get; set; } = GenerationStatus.Pending;
 
+    /// <summary>The raw data payload used for generation.</summary>
+    public string? DataJson { get; set; }
+
     /// <summary>Public URL to the generated file in storage.</summary>
     public string? StorageUrl { get; set; }
 

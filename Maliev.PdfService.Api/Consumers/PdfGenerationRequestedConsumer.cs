@@ -61,13 +61,45 @@ public class PdfGenerationRequestedConsumer : IConsumer<PdfGenerationRequestedEv
 
         try
         {
-            // TODO: In a real scenario, we might need to fetch the data from the source service
-            // if it's not included in the 'Requested' event, or ensure it's persisted elsewhere.
-            // For this implementation, we assume 'data' is either in the event or retrieved.
-            // Since the event payload doesn't have 'Data', this is a gap.
-            // For now, we'll mark it as failed with a relevant message if data is missing.
+            if (string.IsNullOrEmpty(log.DataJson))
+            {
+                throw new InvalidOperationException("Generation data is missing for asynchronous request.");
+            }
 
-            throw new NotSupportedException("Asynchronous generation requires data persistence or inclusion in the event.");
+            var data = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(log.DataJson);
+            var pdfBytes = await _pdfGenerator.GeneratePdfAsync(log.DocumentType, data, log.TemplateCode);
+
+            var fileName = $"{log.DocumentType}_{log.ReferenceId}_{Guid.NewGuid()}.pdf";
+            var storagePath = _pdfGenerator.GetStoragePath(log.DocumentType, log.ReferenceId, fileName);
+
+            var url = await _uploadService.UploadFileAsync(fileName, pdfBytes, "application/pdf", storagePath);
+
+            log.Status = GenerationStatus.Completed;
+            log.StorageUrl = url;
+            log.CompletedAt = DateTime.UtcNow;
+
+            await _dbContext.SaveChangesAsync();
+
+            // Publish PdfGenerationCompletedEvent
+            await _publishEndpoint.Publish(new PdfGenerationCompletedEvent(
+                MessageId: Guid.NewGuid(),
+                MessageName: "PdfGenerationCompletedEvent",
+                MessageType: MessageType.Event,
+                MessageVersion: "1.0.0",
+                PublishedBy: "PdfService",
+                ConsumedBy: ["InvoiceService", "QuotationService", "ReceiptService"],
+                CorrelationId: context.CorrelationId ?? Guid.NewGuid(),
+                CausationId: context.MessageId,
+                OccurredAtUtc: DateTimeOffset.UtcNow,
+                IsPublic: false,
+                Payload: new PdfGenerationCompletedEventPayload(
+                    RequestId: log.Id.ToString(),
+                    ReferenceId: log.ReferenceId,
+                    DocumentType: log.DocumentType.ToString(),
+                    StorageUrl: url,
+                    CompletedAt: DateTimeOffset.UtcNow
+                )
+            ));
         }
         catch (Exception ex)
         {

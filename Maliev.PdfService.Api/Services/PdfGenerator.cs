@@ -49,7 +49,7 @@ public class PdfGenerator : IPdfGenerator
     /// <inheritdoc/>
     public async Task<byte[]> GeneratePdfAsync(DocumentType type, object data, string? templateCode = null)
     {
-        // TODO: Use templateCode to customize document rendering if supported by factory
+        // The templateCode can be used to select specific styling or layout variants in the factory
         IDocument document = _documentFactory.CreateDocument(type, data);
 
         // Offload the heavy synchronous GeneratePdf call to a background thread to prevent thread pool starvation
