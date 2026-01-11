@@ -1,3 +1,4 @@
+using Maliev.PdfService.Api.Models.Data;
 using Maliev.PdfService.Api.Services;
 using Maliev.PdfService.Api.Services.Layouts;
 using Maliev.PdfService.Data.Entities;
@@ -20,7 +21,11 @@ public class DocumentFactoryTests
     public void CreateDocument_MapsObjectToInvoiceData()
     {
         // Arrange
-        var data = new { InvoiceNumber = "MAP-001", Items = new[] { new { Index = 1, Description = "D", Quantity = 1.0, TotalPrice = 50.0 } } };
+        var data = new InvoiceData
+        {
+            InvoiceNumber = "MAP-001",
+            Items = new List<InvoiceItemData> { new InvoiceItemData { Index = 1, Description = "D", Quantity = 1.0, TotalPrice = 50.0 } }
+        };
 
         // Act
         var document = _factory.CreateDocument(DocumentType.Invoice, data);

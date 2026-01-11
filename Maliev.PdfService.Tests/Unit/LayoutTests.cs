@@ -60,7 +60,7 @@ public class LayoutTests
     public void QuotationDocument_GeneratesPdf()
     {
         // Arrange
-        var document = new QuotationDocument(new { });
+        var document = new QuotationDocument(new QuotationData { QuotationNumber = "Q-001" });
 
         // Act
         var pdf = document.GeneratePdf();

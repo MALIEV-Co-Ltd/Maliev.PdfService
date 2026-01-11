@@ -3,6 +3,7 @@ using System;
 using Maliev.PdfService.Data.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Maliev.PdfService.Data.Migrations
 {
     [DbContext(typeof(PdfDbContext))]
-    partial class PdfDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260106142201_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -34,9 +37,6 @@ namespace Maliev.PdfService.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DataJson")
-                        .HasColumnType("text");
-
                     b.Property<string>("DocumentType")
                         .IsRequired()
                         .HasColumnType("text");
@@ -55,11 +55,6 @@ namespace Maliev.PdfService.Data.Migrations
 
                     b.Property<string>("StorageUrl")
                         .HasColumnType("text");
-
-                    b.Property<string>("TemplateCode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
 
                     b.HasKey("Id");
 

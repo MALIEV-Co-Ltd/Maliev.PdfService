@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Maliev.PdfService.Data.Migrations
 {
     [DbContext(typeof(PdfDbContext))]
-    [Migration("20251223084257_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260111113444_AddDataJsonToRequest")]
+    partial class AddDataJsonToRequest
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -37,6 +37,9 @@ namespace Maliev.PdfService.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("DataJson")
+                        .HasColumnType("text");
+
                     b.Property<string>("DocumentType")
                         .IsRequired()
                         .HasColumnType("text");
@@ -55,6 +58,11 @@ namespace Maliev.PdfService.Data.Migrations
 
                     b.Property<string>("StorageUrl")
                         .HasColumnType("text");
+
+                    b.Property<string>("TemplateCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.HasKey("Id");
 

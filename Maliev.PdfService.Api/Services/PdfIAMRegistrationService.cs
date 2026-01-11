@@ -1,49 +1,44 @@
+using Maliev.PdfService.Api.Authorization;
 using Maliev.Aspire.ServiceDefaults.IAM;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Maliev.PdfService.Api.Services;
 
+/// <summary>
+/// Registers PDF Service permissions and roles with the centralized IAM service on startup.
+/// </summary>
 public class PdfIAMRegistrationService : IAMRegistrationService
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PdfIAMRegistrationService"/> class.
+    /// </summary>
     public PdfIAMRegistrationService(
-        IHttpClientFactory httpClientFactory,
+        IConfiguration configuration,
         ILogger<PdfIAMRegistrationService> logger)
-        : base(httpClientFactory, logger, "pdf")
+        : base(configuration, logger, "pdf")
     {
     }
 
+    /// <inheritdoc/>
     protected override IEnumerable<PermissionRegistration> GetPermissions()
     {
-        return new[]
+        return PdfPermissions.AllWithDescriptions.Select(p => new PermissionRegistration
         {
-            new PermissionRegistration
-            {
-                PermissionId = "pdf.generation.create",
-                Description = "Ability to generate new PDF documents"
-            },
-            new PermissionRegistration
-            {
-                PermissionId = "pdf.templates.list",
-                Description = "Ability to list available PDF templates"
-            }
-        };
+            PermissionId = p.Key,
+            Description = p.Value
+        });
     }
 
+    /// <inheritdoc/>
     protected override IEnumerable<RoleRegistration> GetPredefinedRoles()
     {
-        return new[]
+        return PdfPredefinedRoles.All.Select(r => new RoleRegistration
         {
-            new RoleRegistration
-            {
-                RoleId = "roles.pdf.generator",
-                Description = "Standard role for services that need to generate PDFs",
-                PermissionIds = new List<string> { "pdf.generation.create", "pdf.templates.list" }
-            },
-            new RoleRegistration
-            {
-                RoleId = "roles.pdf.admin",
-                Description = "Full administrative access to PDF service",
-                PermissionIds = new List<string> { "pdf.generation.create", "pdf.templates.list" } // Listing all for now
-            }
-        };
+            RoleId = r.RoleId,
+            Description = r.Description,
+            PermissionIds = r.Permissions.ToList(),
+            IsCustom = false
+        });
     }
 }
