@@ -3,15 +3,24 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Maliev.PdfService.Data.Data;
 
+/// <summary>
+/// Database context for the PDF service.
+/// </summary>
 public class PdfDbContext : DbContext
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PdfDbContext"/> class.
+    /// </summary>
     public PdfDbContext(DbContextOptions<PdfDbContext> options) : base(options)
     {
     }
 
+    /// <summary>The collection of PDF templates.</summary>
     public DbSet<PdfTemplate> PdfTemplates => Set<PdfTemplate>();
+    /// <summary>The collection of generation requests.</summary>
     public DbSet<GenerationRequest> GenerationRequests => Set<GenerationRequest>();
 
+    /// <inheritdoc/>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

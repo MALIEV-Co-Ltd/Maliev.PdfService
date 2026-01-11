@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Maliev.PdfService.Data.Migrations
 {
     [DbContext(typeof(PdfDbContext))]
-    [Migration("20251223084257_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260111105536_AddTemplateCodeToRequest")]
+    partial class AddTemplateCodeToRequest
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -55,6 +55,11 @@ namespace Maliev.PdfService.Data.Migrations
 
                     b.Property<string>("StorageUrl")
                         .HasColumnType("text");
+
+                    b.Property<string>("TemplateCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.HasKey("Id");
 

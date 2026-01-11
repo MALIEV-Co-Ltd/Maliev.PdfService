@@ -7,11 +7,18 @@ using Asp.Versioning;
 using Maliev.MessagingContracts.Generated;
 using MassTransit;
 
+using Microsoft.AspNetCore.Authorization;
+using Maliev.PdfService.Api.Authorization;
+
 namespace Maliev.PdfService.Api.Controllers;
 
+/// <summary>
+/// Controller for handling PDF generation requests.
+/// </summary>
 [ApiVersion("1.0")]
 [Route("pdf/v{version:apiVersion}/generations")]
 [ApiController]
+[Authorize]
 public class GenerationController : ControllerBase
 {
     private readonly IPdfGenerator _pdfGenerator;
@@ -20,6 +27,9 @@ public class GenerationController : ControllerBase
     private readonly IPublishEndpoint _publishEndpoint;
     private readonly ILogger<GenerationController> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GenerationController"/> class.
+    /// </summary>
     public GenerationController(
         IPdfGenerator pdfGenerator,
         IUploadServiceClient uploadService,
@@ -34,12 +44,19 @@ public class GenerationController : ControllerBase
         _logger = logger;
     }
 
+    /// <summary>
+    /// Generates a PDF document synchronously.
+    /// </summary>
+    /// <param name="request">The generation request.</param>
+    /// <returns>The generated document URL.</returns>
     [HttpPost("generate")]
+    [Authorize(PdfPermissions.GenerationCreate)]
     public async Task<IActionResult> Generate([FromBody] GeneratePdfRequest request)
     {
         GenerationRequest log = new()
         {
             ReferenceId = request.ReferenceId,
+            TemplateCode = request.TemplateCode,
             DocumentType = request.DocumentType,
             Status = GenerationStatus.Processing,
             CreatedAt = DateTime.UtcNow
@@ -48,12 +65,14 @@ public class GenerationController : ControllerBase
         _dbContext.GenerationRequests.Add(log);
         await _dbContext.SaveChangesAsync();
 
+        var correlationId = HttpContext?.Items["CorrelationId"] as string ?? Guid.NewGuid().ToString();
+
         try
         {
-            var pdfBytes = await _pdfGenerator.GeneratePdfAsync(request.DocumentType, request.Data);
+            var pdfBytes = await _pdfGenerator.GeneratePdfAsync(request.DocumentType, request.Data, request.TemplateCode);
 
             var fileName = $"{request.DocumentType}_{request.ReferenceId}_{Guid.NewGuid()}.pdf";
-            var storagePath = $"pdfs/{request.DocumentType.ToString().ToLower()}/{request.ReferenceId}/{fileName}";
+            var storagePath = _pdfGenerator.GetStoragePath(request.DocumentType, request.ReferenceId, fileName);
 
             var url = await _uploadService.UploadFileAsync(fileName, pdfBytes, "application/pdf", storagePath);
 
@@ -71,7 +90,7 @@ public class GenerationController : ControllerBase
                 MessageVersion: "1.0.0",
                 PublishedBy: "PdfService",
                 ConsumedBy: ["InvoiceService", "QuotationService", "ReceiptService"],
-                CorrelationId: Guid.NewGuid(),
+                CorrelationId: Guid.Parse(correlationId),
                 CausationId: null,
                 OccurredAtUtc: DateTimeOffset.UtcNow,
                 IsPublic: false,
@@ -104,7 +123,7 @@ public class GenerationController : ControllerBase
                 MessageVersion: "1.0.0",
                 PublishedBy: "PdfService",
                 ConsumedBy: ["InvoiceService", "QuotationService", "ReceiptService"],
-                CorrelationId: Guid.NewGuid(),
+                CorrelationId: Guid.Parse(correlationId),
                 CausationId: null,
                 OccurredAtUtc: DateTimeOffset.UtcNow,
                 IsPublic: false,
@@ -121,12 +140,19 @@ public class GenerationController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Enqueues a PDF document for asynchronous generation.
+    /// </summary>
+    /// <param name="request">The generation request.</param>
+    /// <returns>The request ID.</returns>
     [HttpPost("generate/async")]
+    [Authorize(PdfPermissions.GenerationCreate)]
     public async Task<IActionResult> GenerateAsync([FromBody] GeneratePdfRequest request)
     {
         var log = new GenerationRequest
         {
             ReferenceId = request.ReferenceId,
+            TemplateCode = request.TemplateCode,
             DocumentType = request.DocumentType,
             Status = GenerationStatus.Pending,
             CreatedAt = DateTime.UtcNow
@@ -134,6 +160,9 @@ public class GenerationController : ControllerBase
 
         _dbContext.GenerationRequests.Add(log);
         await _dbContext.SaveChangesAsync();
+
+        var correlationIdStr = HttpContext?.Items["CorrelationId"] as string ?? Guid.NewGuid().ToString();
+        var correlationId = Guid.Parse(correlationIdStr);
 
         // Publish PdfGenerationRequestedEvent
         await _publishEndpoint.Publish(new PdfGenerationRequestedEvent(
@@ -143,7 +172,7 @@ public class GenerationController : ControllerBase
             MessageVersion: "1.0.0",
             PublishedBy: "PdfService",
             ConsumedBy: ["PdfService"],
-            CorrelationId: Guid.NewGuid(),
+            CorrelationId: correlationId,
             CausationId: null,
             OccurredAtUtc: DateTimeOffset.UtcNow,
             IsPublic: false,

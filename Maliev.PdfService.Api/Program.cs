@@ -1,19 +1,15 @@
+using Maliev.Aspire.ServiceDefaults;
 using Maliev.PdfService.Api.Metrics;
 using Maliev.PdfService.Api.Services;
 using Maliev.PdfService.Data.Data;
-using Maliev.Aspire.ServiceDefaults;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
-using Asp.Versioning;
 using QuestPDF.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // --- Maliev Service Defaults ---
 builder.AddServiceDefaults();
-
-// --- IAM Integration ---
-builder.Services.AddIAMClient(builder.Configuration, "PdfService");
+builder.AddJwtAuthentication();
 
 // --- Database ---
 builder.AddPostgresDbContext<PdfDbContext>("PdfDbContext");
@@ -23,6 +19,7 @@ builder.AddMassTransitWithRabbitMq(x =>
 {
     x.AddConsumer<Maliev.PdfService.Api.Consumers.InvoiceFinalizedConsumer>();
     x.AddConsumer<Maliev.PdfService.Api.Consumers.FileDeletedEventConsumer>();
+    x.AddConsumer<Maliev.PdfService.Api.Consumers.PdfGenerationRequestedConsumer>();
 });
 
 // --- API Configuration ---
@@ -49,7 +46,16 @@ builder.AddServiceClient<IUploadServiceClient, UploadServiceClient>("UploadServi
 builder.Services.AddScoped<IDocumentFactory, DocumentFactory>();
 builder.Services.AddScoped<IPdfGenerator, PdfGenerator>();
 builder.Services.AddSingleton<IFontResolver, FontResolver>();
-builder.Services.AddIAMRegistration<PdfIAMRegistrationService>();
+builder.AddIAMServiceClient("pdf");
+builder.Services.AddIAMRegistration<PdfIAMRegistrationService>("pdf");
+
+builder.Services.AddAuthorization(options =>
+{
+    foreach (var permission in Maliev.PdfService.Api.Authorization.PdfPermissions.All)
+    {
+        options.AddPolicy(permission, policy => policy.RequireClaim("permissions", permission));
+    }
+});
 
 var app = builder.Build();
 
@@ -65,7 +71,10 @@ using (var scope = app.Services.CreateScope())
 }
 
 // --- Middleware Pipeline ---
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -86,5 +95,8 @@ app.Run();
 // Make Program class accessible to test projects
 namespace Maliev.PdfService.Api
 {
+    /// <summary>
+    /// Entry point for the PDF Service API.
+    /// </summary>
     public partial class Program { }
 }

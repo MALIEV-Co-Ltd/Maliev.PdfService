@@ -1,3 +1,4 @@
+using Maliev.MessagingContracts.Generated;
 using Maliev.PdfService.Tests.Testing;
 using Maliev.PdfService.Data.Data;
 using Maliev.PdfService.Api.Consumers;
@@ -34,7 +35,8 @@ public class ConsumerTests : IClassFixture<BaseIntegrationTestFactory<PdfProgram
         });
 
         var bus = factory.Services.GetRequiredService<IBus>();
-        var message = new InvoiceFinalizedEvent(Guid.NewGuid(), "INV-TEST-001", new { InvoiceNumber = "INV-TEST-001", Items = new List<object>() });
+        var payload = new InvoiceCreatedEventPayload(Guid.NewGuid(), "INV-TEST-001", null, null, Guid.NewGuid(), 1000.0, "USD", null, DateTimeOffset.UtcNow);
+        var message = new InvoiceCreatedEvent(Guid.NewGuid(), "InvoiceCreated", MessageType.Event, "1.0", "InvoiceService", new[] { "PdfService" }, Guid.NewGuid(), null, DateTimeOffset.UtcNow, false, payload);
 
         // Act
         await bus.Publish(message);

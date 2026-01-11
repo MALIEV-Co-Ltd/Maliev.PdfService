@@ -5,36 +5,65 @@ using QuestPDF.Infrastructure;
 
 namespace Maliev.PdfService.Api.Services;
 
+/// <summary>
+/// Factory for creating QuestPDF document implementations based on document type.
+/// </summary>
 public interface IDocumentFactory
 {
+    /// <summary>
+    /// Creates a document instance for the specified type and data.
+    /// </summary>
+    /// <param name="type">The type of document to create.</param>
+    /// <param name="data">The data to bind to the document.</param>
+    /// <returns>A QuestPDF IDocument instance.</returns>
     IDocument CreateDocument(DocumentType type, object data);
 }
 
+/// <summary>
+/// Default implementation of the document factory.
+/// </summary>
 public class DocumentFactory : IDocumentFactory
 {
+    /// <inheritdoc/>
     public IDocument CreateDocument(DocumentType type, object data)
     {
         return type switch
         {
-            DocumentType.Invoice => CreateInvoiceDocument(data),
-            DocumentType.Quotation => new QuotationDocument(data),
+            DocumentType.Invoice => new InvoiceDocument(MapToInvoiceData(data)),
+            DocumentType.Quotation => new QuotationDocument(MapToQuotationData(data)),
             DocumentType.Receipt => new ReceiptDocument(data),
             DocumentType.Report => new FinancialReportDocument(data),
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
     }
 
-    private IDocument CreateInvoiceDocument(object data)
+    private static InvoiceData MapToInvoiceData(object data)
     {
-        if (data is InvoiceData invoiceData) return new InvoiceDocument(invoiceData);
+        if (data is InvoiceData invoiceData) return invoiceData;
 
-        // Handle JsonElement or other types by serializing/deserializing to concrete DTO
-        var json = System.Text.Json.JsonSerializer.Serialize(data);
-        var mapped = System.Text.Json.JsonSerializer.Deserialize<InvoiceData>(json, new System.Text.Json.JsonSerializerOptions
+        if (data is System.Text.Json.JsonElement jsonElement)
         {
-            PropertyNameCaseInsensitive = true
-        }) ?? throw new InvalidOperationException("Failed to map invoice data");
+            return System.Text.Json.JsonSerializer.Deserialize<InvoiceData>(jsonElement.GetRawText(), new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            }) ?? throw new InvalidOperationException($"Failed to deserialize {nameof(InvoiceData)} from JsonElement");
+        }
 
-        return new InvoiceDocument(mapped);
+        throw new InvalidOperationException($"Data must be of type {nameof(InvoiceData)} or JsonElement representing it.");
+    }
+
+    private static QuotationData MapToQuotationData(object data)
+    {
+        if (data is QuotationData quotationData) return quotationData;
+
+        if (data is System.Text.Json.JsonElement jsonElement)
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<QuotationData>(jsonElement.GetRawText(), new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            }) ?? throw new InvalidOperationException($"Failed to deserialize {nameof(QuotationData)} from JsonElement");
+        }
+
+        throw new InvalidOperationException($"Data must be of type {nameof(QuotationData)} or JsonElement representing it.");
     }
 }

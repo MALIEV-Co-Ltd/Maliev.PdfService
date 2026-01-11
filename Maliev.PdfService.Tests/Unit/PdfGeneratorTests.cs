@@ -1,3 +1,4 @@
+using Maliev.PdfService.Api.Models.Data;
 using Maliev.PdfService.Api.Services;
 using Maliev.PdfService.Api.Services.Layouts;
 using Maliev.PdfService.Data.Entities;
@@ -28,7 +29,7 @@ public class PdfGeneratorTests
     public async Task GeneratePdfAsync_ReturnsPdfBytes()
     {
         // Arrange
-        var data = new { };
+        var data = new QuotationData { QuotationNumber = "Q-001" };
         _documentFactoryMock.Setup(x => x.CreateDocument(It.IsAny<DocumentType>(), It.IsAny<object>()))
             .Returns(new QuotationDocument(data));
 
@@ -46,7 +47,7 @@ public class PdfGeneratorTests
     public async Task GeneratePdfAsync_HandlesDevelopmentEnvironment()
     {
         // Arrange
-        var data = new { };
+        var data = new QuotationData { QuotationNumber = "Q-002" };
         _documentFactoryMock.Setup(x => x.CreateDocument(It.IsAny<DocumentType>(), It.IsAny<object>()))
             .Returns(new QuotationDocument(data));
 

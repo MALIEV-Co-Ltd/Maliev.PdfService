@@ -5,33 +5,60 @@ using QuestPDF.Previewer;
 
 namespace Maliev.PdfService.Api.Services;
 
+/// <summary>
+/// Service for generating PDF documents using QuestPDF.
+/// </summary>
 public interface IPdfGenerator
 {
-    Task<byte[]> GeneratePdfAsync(DocumentType type, dynamic data, string? configJson = null);
+    /// <summary>
+    /// Generates a PDF byte array asynchronously.
+    /// </summary>
+    /// <param name="type">The type of document to generate.</param>
+    /// <param name="data">The data to bind to the document.</param>
+    /// <param name="templateCode">The specific template code to use.</param>
+    /// <returns>A byte array containing the generated PDF.</returns>
+    Task<byte[]> GeneratePdfAsync(DocumentType type, object data, string? templateCode = null);
+
+    /// <summary>
+    /// Constructs a standardized storage path for a generated document.
+    /// </summary>
+    /// <param name="type">The type of document.</param>
+    /// <param name="referenceId">The business reference ID.</param>
+    /// <param name="fileName">The name of the file.</param>
+    /// <returns>A storage path string.</returns>
+    string GetStoragePath(DocumentType type, string referenceId, string fileName);
 }
 
+/// <summary>
+/// Default implementation of the PDF generator.
+/// </summary>
 public class PdfGenerator : IPdfGenerator
 {
     private readonly IDocumentFactory _documentFactory;
     private readonly IWebHostEnvironment _env;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PdfGenerator"/> class.
+    /// </summary>
     public PdfGenerator(IDocumentFactory documentFactory, IWebHostEnvironment env)
     {
         _documentFactory = documentFactory;
         _env = env;
     }
 
-    public async Task<byte[]> GeneratePdfAsync(DocumentType type, object data, string? configJson = null)
+    /// <inheritdoc/>
+    public async Task<byte[]> GeneratePdfAsync(DocumentType type, object data, string? templateCode = null)
     {
+        // TODO: Use templateCode to customize document rendering if supported by factory
         IDocument document = _documentFactory.CreateDocument(type, data);
 
-        if (_env.IsDevelopment())
-        {
-            // Show in companion for hot-reload preview during development
-            // This is non-blocking
-            // _ = Task.Run(() => document.ShowInCompanion());
-        }
+        // Offload the heavy synchronous GeneratePdf call to a background thread to prevent thread pool starvation
+        return await Task.Run(() => document.GeneratePdf());
+    }
 
-        return document.GeneratePdf();
+    /// <inheritdoc/>
+    public string GetStoragePath(DocumentType type, string referenceId, string fileName)
+    {
+        return $"pdfs/{type.ToString().ToLower()}/{referenceId}/{fileName}";
     }
 }

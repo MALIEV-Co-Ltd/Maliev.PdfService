@@ -13,12 +13,16 @@ public class FileDeletedEventConsumer : IConsumer<FileDeletedEvent>
     private readonly PdfDbContext _dbContext;
     private readonly ILogger<FileDeletedEventConsumer> _logger;
 
-    public FileDeletedEventConsumer(PdfDbContext dbContext, ILogger<FileDeletedEventConsumer> logger)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FileDeletedEventConsumer"/> class.
+    /// </summary>
+    public FileDeletedEventConsumer(PdfDbContext dbContext, ILogger<FileDeletedEventConsumer> _logger)
     {
         _dbContext = dbContext;
-        _logger = logger;
+        this._logger = _logger;
     }
 
+    /// <inheritdoc/>
     public async Task Consume(ConsumeContext<FileDeletedEvent> context)
     {
         var payload = context.Message.Payload;

@@ -3,7 +3,12 @@ using Maliev.PdfService.Data.Data;
 using System.Net.Http.Json;
 using Xunit;
 using Moq;
+using System.Text.Json;
+using Maliev.PdfService.Api.Models.Requests;
+using Maliev.PdfService.Api.Models.Data;
 using Maliev.PdfService.Api.Services;
+using Maliev.PdfService.Api.Authorization;
+using Maliev.PdfService.Data.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.TestHost;
 using PdfProgram = Maliev.PdfService.Api.Program;
@@ -24,20 +29,26 @@ public class AsyncGenerationTests : IClassFixture<BaseIntegrationTestFactory<Pdf
     public async Task GenerateAsync_ReturnsAcceptedWithRequestId()
     {
         // Arrange
-        var client = _factory.WithWebHostBuilder(builder =>
+        var factory = _factory.WithWebHostBuilder(builder =>
         {
             builder.ConfigureTestServices(services =>
             {
                 services.AddScoped(_ => _uploadServiceMock.Object);
             });
-        }).CreateClient();
+        });
 
-        var request = new
+        var client = _factory.CreateAuthenticatedClient(factory, permissions: [PdfPermissions.GenerationCreate]);
+
+        var request = new GeneratePdfRequest
         {
-            templateCode = "INV-STD-01",
-            referenceId = "INV-2025-001",
-            documentType = "Invoice",
-            data = new { InvoiceNumber = "INV-2025-001", Items = new[] { new { Index = 1, Description = "Test Item", Quantity = 1, TotalPrice = 100.0 } } }
+            TemplateCode = "INV-STD-01",
+            ReferenceId = "INV-2025-001",
+            DocumentType = DocumentType.Invoice,
+            Data = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(new InvoiceData
+            {
+                InvoiceNumber = "INV-2025-001",
+                Items = new List<InvoiceItemData> { new InvoiceItemData { Index = 1, Description = "Test Item", Quantity = 1, TotalPrice = 100.0 } }
+            }))
         };
 
         // Act

@@ -5,17 +5,26 @@ using QuestPDF.Infrastructure;
 
 namespace Maliev.PdfService.Api.Services.Layouts;
 
+/// <summary>
+/// QuestPDF layout for Invoice documents.
+/// </summary>
 public class InvoiceDocument : IDocument
 {
+    /// <summary>The invoice data.</summary>
     public InvoiceData Data { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="InvoiceDocument"/> class.
+    /// </summary>
     public InvoiceDocument(InvoiceData data)
     {
         Data = data;
     }
 
+    /// <inheritdoc/>
     public DocumentMetadata GetMetadata() => DocumentMetadata.Default;
 
+    /// <inheritdoc/>
     public void Compose(IDocumentContainer container)
     {
         container.Page(page =>

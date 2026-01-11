@@ -10,11 +10,15 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Testcontainers.PostgreSql;
 using Testcontainers.RabbitMq;
 using Testcontainers.Redis;
 using Xunit;
+
+using Microsoft.AspNetCore.Authorization;
+using Maliev.PdfService.Api.Authorization;
 
 namespace Maliev.PdfService.Tests.Testing;
 
@@ -73,16 +77,12 @@ public class BaseIntegrationTestFactory<TProgram, TDbContext> : WebApplicationFa
         );
 
         // Set environment variables immediately after containers start
-        // This ensures they are available when Program.Main runs (which happens when .Server is accessed)
         Environment.SetEnvironmentVariable($"ConnectionStrings__{DbConnectionStringName}", _postgresContainer.GetConnectionString());
         Environment.SetEnvironmentVariable("ConnectionStrings__redis", _redisContainer.GetConnectionString());
         Environment.SetEnvironmentVariable("ConnectionStrings__rabbitmq", _rabbitmqContainer.GetConnectionString());
 
-        // Wait for Redis to be ready
-        using (var connection = await StackExchange.Redis.ConnectionMultiplexer.ConnectAsync(_redisContainer.GetConnectionString()))
-        {
-            await connection.GetDatabase().PingAsync();
-        }
+        // Also set these for the Program.cs which might be running in the same process
+        System.Environment.SetEnvironmentVariable($"ConnectionStrings__{DbConnectionStringName}", _postgresContainer.GetConnectionString());
 
         // Apply database migrations
         await ApplyMigrationsAsync();
@@ -128,9 +128,23 @@ public class BaseIntegrationTestFactory<TProgram, TDbContext> : WebApplicationFa
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.ConfigureLogging(logging =>
+        {
+            logging.ClearProviders();
+            logging.AddConsole();
+        });
+
+        builder.ConfigureAppConfiguration((context, config) =>
+        {
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Jwt:SecurityKey"] = "test-secret-key-at-least-32-characters-long"
+            });
+        });
+
         builder.ConfigureTestServices(services =>
         {
-            // Configure JWT Bearer authentication with test RSA key
+            // Configure JWT Bearer options after standard registration
             services.PostConfigureAll<Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerOptions>(options =>
             {
                 options.TokenValidationParameters = new TokenValidationParameters
@@ -148,6 +162,15 @@ public class BaseIntegrationTestFactory<TProgram, TDbContext> : WebApplicationFa
 
             // Add MassTransit test harness for testing message publishing/consuming
             services.AddMassTransitTestHarness();
+
+            // Configure Authorization Policies for testing
+            services.AddAuthorization(options =>
+            {
+                foreach (var permission in PdfPermissions.All)
+                {
+                    options.AddPolicy(permission, policy => policy.RequireAssertion(_ => true)); // Bypass for tests
+                }
+            });
 
             // Selectively remove domain background services if any are added in the future
             // Infrastructure background services (MassTransit, IAM registration) are kept
@@ -286,6 +309,7 @@ public class BaseIntegrationTestFactory<TProgram, TDbContext> : WebApplicationFa
     public string CreateTestJwtToken(
         string userId = "test-user",
         string[]? roles = null,
+        string[]? permissions = null,
         Dictionary<string, string>? additionalClaims = null)
     {
         var claims = new List<Claim>
@@ -299,6 +323,14 @@ public class BaseIntegrationTestFactory<TProgram, TDbContext> : WebApplicationFa
             foreach (var role in roles)
             {
                 claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+        }
+
+        if (permissions != null)
+        {
+            foreach (var permission in permissions)
+            {
+                claims.Add(new Claim("permissions", permission));
             }
         }
 
@@ -334,12 +366,20 @@ public class BaseIntegrationTestFactory<TProgram, TDbContext> : WebApplicationFa
     }
 
     /// <summary>
-    /// Creates an HTTP client with authenticated user and specified roles.
+    /// Creates an HTTP client with authenticated user and specified roles/permissions for a specific factory instance.
     /// </summary>
-    public HttpClient CreateAuthenticatedClient(string userId = "test-user", string[]? roles = null)
+    public HttpClient CreateAuthenticatedClient(string userId = "test-user", string[]? roles = null, string[]? permissions = null)
     {
-        var token = CreateTestJwtToken(userId, roles);
-        var client = CreateClient();
+        return CreateAuthenticatedClient(this, userId, roles, permissions);
+    }
+
+    /// <summary>
+    /// Static helper to create an authenticated client from any WebApplicationFactory using this factory's RSA key.
+    /// </summary>
+    public HttpClient CreateAuthenticatedClient(WebApplicationFactory<TProgram> factory, string userId = "test-user", string[]? roles = null, string[]? permissions = null)
+    {
+        var token = CreateTestJwtToken(userId, roles, permissions);
+        var client = factory.CreateClient();
         client.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
         return client;
     }

@@ -48,7 +48,7 @@ public class GenerationControllerTests
             Data = JsonSerializer.Deserialize<JsonElement>("{\"InvoiceNumber\": \"123\"}")
         };
 
-        _pdfGeneratorMock.Setup(x => x.GeneratePdfAsync(It.IsAny<DocumentType>(), It.IsAny<object>(), null))
+        _pdfGeneratorMock.Setup(x => x.GeneratePdfAsync(It.IsAny<DocumentType>(), It.IsAny<object>(), "T1"))
             .ReturnsAsync(new byte[] { 1, 2, 3 });
 
         _uploadServiceMock.Setup(x => x.UploadFileAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -102,7 +102,7 @@ public class GenerationControllerTests
             Data = JsonSerializer.Deserialize<JsonElement>("{}")
         };
 
-        _pdfGeneratorMock.Setup(x => x.GeneratePdfAsync(It.IsAny<DocumentType>(), It.IsAny<object>(), null))
+        _pdfGeneratorMock.Setup(x => x.GeneratePdfAsync(It.IsAny<DocumentType>(), It.IsAny<object>(), "T1"))
             .ThrowsAsync(new Exception("Generation failed"));
 
         // Act
