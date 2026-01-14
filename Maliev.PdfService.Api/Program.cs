@@ -1,96 +1,119 @@
+#pragma warning disable CA1848 // For improved performance, use the LoggerMessage delegates
+
 using Maliev.Aspire.ServiceDefaults;
 using Maliev.PdfService.Api.Metrics;
 using Maliev.PdfService.Api.Services;
 using Maliev.PdfService.Data.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using QuestPDF.Infrastructure;
 
-var builder = WebApplication.CreateBuilder(args);
+// Initialize bootstrap logging
+using var loggerFactory = LoggerFactory.Create(logBuilder => logBuilder.AddConsole());
+var bootstrapLogger = loggerFactory.CreateLogger("Program");
 
-// --- Maliev Service Defaults ---
-builder.AddServiceDefaults();
-builder.AddJwtAuthentication();
-
-// --- Database ---
-builder.AddPostgresDbContext<PdfDbContext>("PdfDbContext");
-
-// --- Messaging ---
-builder.AddMassTransitWithRabbitMq(x =>
+try
 {
-    x.AddConsumer<Maliev.PdfService.Api.Consumers.InvoiceFinalizedConsumer>();
-    x.AddConsumer<Maliev.PdfService.Api.Consumers.FileDeletedEventConsumer>();
-    x.AddConsumer<Maliev.PdfService.Api.Consumers.PdfGenerationRequestedConsumer>();
-});
+    bootstrapLogger.LogInformation("Starting PDF Service host");
 
-// --- API Configuration ---
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
+    var builder = WebApplication.CreateBuilder(args);
+
+    // --- Maliev Service Defaults ---
+    builder.AddServiceDefaults();
+    builder.AddJwtAuthentication();
+
+    // --- Database ---
+    builder.AddPostgresDbContext<PdfDbContext>("PdfDbContext");
+
+    // --- Messaging ---
+    builder.AddMassTransitWithRabbitMq(x =>
     {
-        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        x.AddConsumer<Maliev.PdfService.Api.Consumers.InvoiceFinalizedConsumer>();
+        x.AddConsumer<Maliev.PdfService.Api.Consumers.FileDeletedEventConsumer>();
+        x.AddConsumer<Maliev.PdfService.Api.Consumers.PdfGenerationRequestedConsumer>();
     });
 
-builder.AddStandardOpenApi(
-    title: "MALIEV PDF Service API",
-    description: "PDF generation service for the Maliev platform. Handles document rendering from templates, font resolution, and secure delivery of generated documents.");
+    // --- API Configuration ---
+    builder.Services.AddControllers()
+        .AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        });
 
-// --- API Versioning ---
-builder.AddDefaultApiVersioning();
+    builder.AddStandardOpenApi(
+        title: "MALIEV PDF Service API",
+        description: "PDF generation service for the Maliev platform. Handles document rendering from templates, font resolution, and secure delivery of generated documents.");
 
-// --- PDF Engine Settings ---
-QuestPDF.Settings.License = LicenseType.Community;
+    // --- API Versioning ---
+    builder.AddDefaultApiVersioning();
 
-// --- Custom Services ---
-builder.Services.AddSingleton<PdfMetrics>();
-builder.AddServiceClient<IUploadServiceClient, UploadServiceClient>("UploadService");
+    // --- PDF Engine Settings ---
+    QuestPDF.Settings.License = LicenseType.Community;
 
-builder.Services.AddScoped<IDocumentFactory, DocumentFactory>();
-builder.Services.AddScoped<IPdfGenerator, PdfGenerator>();
-builder.Services.AddSingleton<IFontResolver, FontResolver>();
-builder.AddIAMServiceClient("pdf");
-builder.Services.AddIAMRegistration<PdfIAMRegistrationService>("pdf");
+    // --- Custom Services ---
+    builder.Services.AddSingleton<PdfMetrics>();
+    builder.AddServiceClient<IUploadServiceClient, UploadServiceClient>("UploadService");
 
-builder.Services.AddAuthorization(options =>
-{
-    foreach (var permission in Maliev.PdfService.Api.Authorization.PdfPermissions.All)
+    builder.Services.AddScoped<IDocumentFactory, DocumentFactory>();
+    builder.Services.AddScoped<IPdfGenerator, PdfGenerator>();
+    builder.Services.AddSingleton<IFontResolver, FontResolver>();
+    builder.AddIAMServiceClient("pdf");
+    builder.Services.AddIAMRegistration<PdfIAMRegistrationService>("pdf");
+
+    builder.Services.AddAuthorization(options =>
     {
-        options.AddPolicy(permission, policy => policy.RequireClaim("permissions", permission));
+        foreach (var permission in Maliev.PdfService.Api.Authorization.PdfPermissions.All)
+        {
+            options.AddPolicy(permission, policy => policy.RequireClaim("permissions", permission));
+        }
+    });
+
+    var app = builder.Build();
+    var logger = app.Services.GetRequiredService<ILogger<Maliev.PdfService.Api.Program>>();
+
+    // --- Maliev Standard Middleware ---
+    app.UseStandardMiddleware();
+    app.UseCors();
+
+    // --- Initialize PDF Engine ---
+    using (var scope = app.Services.CreateScope())
+    {
+        var fontResolver = scope.ServiceProvider.GetRequiredService<IFontResolver>();
+        fontResolver.RegisterFonts();
     }
-});
 
-var app = builder.Build();
+    // --- Middleware Pipeline ---
+    if (!app.Environment.IsDevelopment())
+    {
+        app.UseHttpsRedirection();
+    }
+    app.UseAuthentication();
+    app.UseAuthorization();
 
-// --- Maliev Standard Middleware ---
-app.UseStandardMiddleware();
-app.UseCors();
+    // Map Aspire default endpoints
+    app.MapDefaultEndpoints("pdf");
 
-// --- Initialize PDF Engine ---
-using (var scope = app.Services.CreateScope())
-{
-    var fontResolver = scope.ServiceProvider.GetRequiredService<IFontResolver>();
-    fontResolver.RegisterFonts();
+    // Map OpenAPI and Scalar documentation (dev/staging only)
+    app.MapApiDocumentation(servicePrefix: "pdf");
+
+    // Run migrations on startup
+    await app.MigrateDatabaseAsync<PdfDbContext>();
+
+    // Map endpoints with /pdf prefix
+    app.MapControllers();
+
+    logger.LogInformation("PDF Service started successfully");
+    await app.RunAsync();
 }
-
-// --- Middleware Pipeline ---
-if (!app.Environment.IsDevelopment())
+catch (Exception ex)
 {
-    app.UseHttpsRedirection();
+    bootstrapLogger.LogCritical(ex, "PDF Service host terminated unexpectedly during startup");
+    throw;
 }
-app.UseAuthentication();
-app.UseAuthorization();
-
-// Map Aspire default endpoints
-app.MapDefaultEndpoints("pdf");
-
-// Map OpenAPI and Scalar documentation (dev/staging only)
-app.MapApiDocumentation(servicePrefix: "pdf");
-
-// Run migrations on startup
-await app.MigrateDatabaseAsync<PdfDbContext>();
-
-// Map endpoints with /pdf prefix
-app.MapControllers();
-
-app.Run();
+finally
+{
+    loggerFactory.Dispose();
+}
 
 // Make Program class accessible to test projects
 namespace Maliev.PdfService.Api
