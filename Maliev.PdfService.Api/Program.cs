@@ -118,7 +118,7 @@ finally
 namespace Maliev.PdfService.Api
 {
     /// <summary>
-    /// Main program class for the PDF Service API.
+    /// Entry point for the PDF Service API.
     /// </summary>
     public partial class Program
     {
