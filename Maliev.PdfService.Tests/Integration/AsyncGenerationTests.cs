@@ -1,26 +1,19 @@
-using Maliev.PdfService.Tests.Testing;
-using Maliev.PdfService.Data.Data;
+using Maliev.PdfService.Tests.Fixtures;
 using System.Net.Http.Json;
 using Xunit;
-using Moq;
 using System.Text.Json;
 using Maliev.PdfService.Api.Models.Requests;
 using Maliev.PdfService.Api.Models.Data;
-using Maliev.PdfService.Api.Services;
 using Maliev.PdfService.Api.Authorization;
 using Maliev.PdfService.Data.Entities;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.TestHost;
-using PdfProgram = Maliev.PdfService.Api.Program;
 
 namespace Maliev.PdfService.Tests.Integration;
 
-public class AsyncGenerationTests : IClassFixture<BaseIntegrationTestFactory<PdfProgram, PdfDbContext>>
+public class AsyncGenerationTests : IClassFixture<PdfServiceTestFactory>
 {
-    private readonly BaseIntegrationTestFactory<PdfProgram, PdfDbContext> _factory;
-    private readonly Mock<IUploadServiceClient> _uploadServiceMock = new();
+    private readonly PdfServiceTestFactory _factory;
 
-    public AsyncGenerationTests(BaseIntegrationTestFactory<PdfProgram, PdfDbContext> factory)
+    public AsyncGenerationTests(PdfServiceTestFactory factory)
     {
         _factory = factory;
     }
@@ -29,15 +22,7 @@ public class AsyncGenerationTests : IClassFixture<BaseIntegrationTestFactory<Pdf
     public async Task GenerateAsync_ReturnsAcceptedWithRequestId()
     {
         // Arrange
-        var factory = _factory.WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureTestServices(services =>
-            {
-                services.AddScoped(_ => _uploadServiceMock.Object);
-            });
-        });
-
-        var client = _factory.CreateAuthenticatedClient(factory, permissions: [PdfPermissions.GenerationCreate]);
+        var client = _factory.CreateAuthenticatedClient(permissions: [PdfPermissions.GenerationCreate]);
 
         var request = new GeneratePdfRequest
         {
