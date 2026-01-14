@@ -14,7 +14,7 @@ var bootstrapLogger = loggerFactory.CreateLogger("Program");
 
 try
 {
-    bootstrapLogger.LogInformation("Starting PDF Service host");
+    Maliev.PdfService.Api.Program.Log.StartingHost(bootstrapLogger, "PDF Service");
 
     var builder = WebApplication.CreateBuilder(args);
 
@@ -102,12 +102,12 @@ try
     // Map endpoints with /pdf prefix
     app.MapControllers();
 
-    logger.LogInformation("PDF Service started successfully");
+    Maliev.PdfService.Api.Program.Log.ServiceStarted(logger, "PDF Service");
     await app.RunAsync();
 }
 catch (Exception ex)
 {
-    bootstrapLogger.LogCritical(ex, "PDF Service host terminated unexpectedly during startup");
+    Maliev.PdfService.Api.Program.Log.HostTerminated(bootstrapLogger, ex, "PDF Service");
     throw;
 }
 finally
@@ -115,11 +115,23 @@ finally
     loggerFactory.Dispose();
 }
 
-// Make Program class accessible to test projects
 namespace Maliev.PdfService.Api
 {
     /// <summary>
-    /// Entry point for the PDF Service API.
+    /// Main program class for the PDF Service API.
     /// </summary>
-    public partial class Program { }
+    public partial class Program
+    {
+        internal static partial class Log
+        {
+            [LoggerMessage(Level = LogLevel.Information, Message = "Starting {ServiceName} host")]
+            public static partial void StartingHost(ILogger logger, string serviceName);
+
+            [LoggerMessage(Level = LogLevel.Critical, Message = "{ServiceName} host terminated unexpectedly during startup")]
+            public static partial void HostTerminated(ILogger logger, Exception ex, string serviceName);
+
+            [LoggerMessage(Level = LogLevel.Information, Message = "{ServiceName} started successfully")]
+            public static partial void ServiceStarted(ILogger logger, string serviceName);
+        }
+    }
 }
