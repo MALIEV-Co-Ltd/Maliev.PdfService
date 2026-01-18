@@ -1,5 +1,3 @@
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
 using QuestPDF.Drawing;
 
 namespace Maliev.PdfService.Api.Services;

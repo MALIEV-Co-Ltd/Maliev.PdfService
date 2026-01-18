@@ -1,7 +1,5 @@
-using Maliev.PdfService.Api.Authorization;
 using Maliev.Aspire.ServiceDefaults.IAM;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
+using Maliev.PdfService.Api.Authorization;
 
 namespace Maliev.PdfService.Api.Services;
 

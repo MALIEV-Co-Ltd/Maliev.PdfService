@@ -1,5 +1,4 @@
 using QuestPDF.Fluent;
-using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
 namespace Maliev.PdfService.Api.Services.Layouts;

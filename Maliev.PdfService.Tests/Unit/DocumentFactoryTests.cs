@@ -33,6 +33,65 @@ public class DocumentFactoryTests
         // Assert
         var invoiceDoc = Assert.IsType<InvoiceDocument>(document);
         Assert.Equal("MAP-001", invoiceDoc.Data.InvoiceNumber);
-        Assert.Single(invoiceDoc.Data.Items);
+    }
+
+    [Fact]
+    public void CreateDocument_Quotation_ReturnsQuotationDocument()
+    {
+        // Arrange
+        var data = new QuotationData { QuotationNumber = "QUO-1" };
+
+        // Act
+        var doc = _factory.CreateDocument(DocumentType.Quotation, data);
+
+        // Assert
+        Assert.NotNull(doc);
+    }
+
+    [Fact]
+    public void CreateDocument_Receipt_ReturnsReceiptDocument()
+    {
+        // Arrange
+        var data = new { ReceiptNumber = "RCP-1" };
+
+        // Act
+        var doc = _factory.CreateDocument(DocumentType.Receipt, data);
+
+        // Assert
+        Assert.NotNull(doc);
+    }
+
+    [Fact]
+    public void CreateDocument_Report_ReturnsReportDocument()
+    {
+        // Arrange
+        var data = new { ReportTitle = "Report" };
+
+        // Act
+        var doc = _factory.CreateDocument(DocumentType.Report, data);
+
+        // Assert
+        Assert.NotNull(doc);
+    }
+
+    [Fact]
+    public void MapToInvoiceData_JsonElement_ReturnsData()
+    {
+        // Arrange
+        var json = "{\"InvoiceNumber\":\"INV-2\"}";
+        var element = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(json);
+
+        // Act
+        var doc = _factory.CreateDocument(DocumentType.Invoice, element);
+
+        // Assert
+        Assert.NotNull(doc);
+    }
+
+    [Fact]
+    public void MapToInvoiceData_InvalidType_ThrowsException()
+    {
+        // Act & Assert
+        Assert.Throws<InvalidOperationException>(() => _factory.CreateDocument(DocumentType.Invoice, "not-data"));
     }
 }

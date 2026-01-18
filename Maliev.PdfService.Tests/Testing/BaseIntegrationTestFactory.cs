@@ -161,7 +161,14 @@ public class BaseIntegrationTestFactory<TProgram, TDbContext> : WebApplicationFa
             });
 
             // Add MassTransit test harness for testing message publishing/consuming
-            services.AddMassTransitTestHarness();
+            services.AddMassTransitTestHarness(x =>
+            {
+                // In-memory transport for testing
+                x.UsingInMemory((context, cfg) =>
+                {
+                    cfg.ConfigureEndpoints(context);
+                });
+            });
 
             // Configure Authorization Policies for testing
             services.AddAuthorization(options =>
