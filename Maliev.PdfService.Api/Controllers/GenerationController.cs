@@ -1,14 +1,13 @@
+using Asp.Versioning;
+using Maliev.MessagingContracts.Generated;
+using Maliev.PdfService.Api.Authorization;
 using Maliev.PdfService.Api.Models.Requests;
 using Maliev.PdfService.Api.Services;
 using Maliev.PdfService.Data.Data;
 using Maliev.PdfService.Data.Entities;
-using Microsoft.AspNetCore.Mvc;
-using Asp.Versioning;
-using Maliev.MessagingContracts.Generated;
 using MassTransit;
-
 using Microsoft.AspNetCore.Authorization;
-using Maliev.PdfService.Api.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Maliev.PdfService.Api.Controllers;
 

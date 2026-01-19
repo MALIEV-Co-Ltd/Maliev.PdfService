@@ -31,8 +31,13 @@ public class FileDeletedEventConsumer : IConsumer<FileDeletedEvent>
             payload.FileId, payload.StoragePath);
 
         // Find generation requests referencing this storage path or file ID
+        // Use EF.Functions.Like for case-insensitive/provider-specific matching if needed,
+        // but here we just need to avoid client-side evaluation issues if any.
+        var fileIdPattern = $"%{payload.FileId}%";
+        var storagePathPattern = $"%{payload.StoragePath}%";
+
         var requests = await _dbContext.GenerationRequests
-            .Where(r => r.StorageUrl != null && (r.StorageUrl.Contains(payload.FileId) || r.StorageUrl.Contains(payload.StoragePath)))
+            .Where(r => r.StorageUrl != null && (EF.Functions.Like(r.StorageUrl, fileIdPattern) || EF.Functions.Like(r.StorageUrl, storagePathPattern)))
             .ToListAsync();
 
         if (requests.Any())

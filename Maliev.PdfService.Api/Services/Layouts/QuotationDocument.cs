@@ -1,8 +1,6 @@
-using QuestPDF.Fluent;
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
-
 using Maliev.PdfService.Api.Models.Data;
+using QuestPDF.Fluent;
+using QuestPDF.Infrastructure;
 
 namespace Maliev.PdfService.Api.Services.Layouts;
 

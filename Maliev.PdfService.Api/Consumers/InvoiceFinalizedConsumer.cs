@@ -1,10 +1,9 @@
 using Maliev.MessagingContracts.Generated;
+using Maliev.PdfService.Api.Models.Data;
 using Maliev.PdfService.Api.Services;
+using Maliev.PdfService.Data.Data;
 using Maliev.PdfService.Data.Entities;
 using MassTransit;
-
-using Maliev.PdfService.Data.Data;
-using Maliev.PdfService.Api.Models.Data;
 
 namespace Maliev.PdfService.Api.Consumers;
 

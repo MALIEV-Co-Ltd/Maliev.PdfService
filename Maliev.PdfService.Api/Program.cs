@@ -1,11 +1,9 @@
 #pragma warning disable CA1848 // For improved performance, use the LoggerMessage delegates
 
-using Maliev.Aspire.ServiceDefaults;
 using Maliev.PdfService.Api.Metrics;
 using Maliev.PdfService.Api.Services;
 using Maliev.PdfService.Data.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using QuestPDF.Infrastructure;
 
 // Initialize bootstrap logging
@@ -31,6 +29,7 @@ try
         x.AddConsumer<Maliev.PdfService.Api.Consumers.InvoiceFinalizedConsumer>();
         x.AddConsumer<Maliev.PdfService.Api.Consumers.FileDeletedEventConsumer>();
         x.AddConsumer<Maliev.PdfService.Api.Consumers.PdfGenerationRequestedConsumer>();
+        x.AddConsumer<Maliev.PdfService.Api.Consumers.ReceiptPdfRequestedConsumer>();
     });
 
     // --- API Configuration ---

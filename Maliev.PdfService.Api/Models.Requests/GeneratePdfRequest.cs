@@ -1,6 +1,6 @@
+using Maliev.PdfService.Data.Entities;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
-using Maliev.PdfService.Data.Entities;
 
 namespace Maliev.PdfService.Api.Models.Requests;
 

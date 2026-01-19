@@ -1,7 +1,6 @@
 using Maliev.PdfService.Data.Entities;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
-using QuestPDF.Previewer;
 
 namespace Maliev.PdfService.Api.Services;
 
