@@ -1,5 +1,6 @@
 #pragma warning disable CA1848 // For improved performance, use the LoggerMessage delegates
 
+using Maliev.Aspire.ServiceDefaults;
 using Maliev.PdfService.Api.Metrics;
 using Maliev.PdfService.Api.Services;
 using Maliev.PdfService.Data.Data;
@@ -59,13 +60,7 @@ try
     builder.AddIAMServiceClient("pdf");
     builder.Services.AddIAMRegistration<PdfIAMRegistrationService>("pdf");
 
-    builder.Services.AddAuthorization(options =>
-    {
-        foreach (var permission in Maliev.PdfService.Api.Authorization.PdfPermissions.All)
-        {
-            options.AddPolicy(permission, policy => policy.RequireClaim("permissions", permission));
-        }
-    });
+    builder.Services.AddPermissionAuthorization();
 
     var app = builder.Build();
     var logger = app.Services.GetRequiredService<ILogger<Maliev.PdfService.Api.Program>>();

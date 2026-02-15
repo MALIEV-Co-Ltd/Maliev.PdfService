@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using Maliev.Aspire.ServiceDefaults.Authorization;
 using Maliev.MessagingContracts.Generated;
 using Maliev.PdfService.Api.Authorization;
 using Maliev.PdfService.Api.Models.Requests;
@@ -49,7 +50,7 @@ public class GenerationController : ControllerBase
     /// <param name="request">The generation request.</param>
     /// <returns>The generated document URL.</returns>
     [HttpPost("generate")]
-    [Authorize(PdfPermissions.GenerationCreate)]
+    [RequirePermission(PdfPermissions.GenerationCreate)]
     public async Task<IActionResult> Generate([FromBody] GeneratePdfRequest request)
     {
         GenerationRequest log = new()
@@ -146,7 +147,7 @@ public class GenerationController : ControllerBase
     /// <param name="request">The generation request.</param>
     /// <returns>The request ID.</returns>
     [HttpPost("generate/async")]
-    [Authorize(PdfPermissions.GenerationCreate)]
+    [RequirePermission(PdfPermissions.GenerationCreate)]
     public async Task<IActionResult> GenerateAsync([FromBody] GeneratePdfRequest request)
     {
         var log = new GenerationRequest
