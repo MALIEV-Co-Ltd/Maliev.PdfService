@@ -31,6 +31,7 @@ try
         x.AddConsumer<Maliev.PdfService.Api.Consumers.FileDeletedEventConsumer>();
         x.AddConsumer<Maliev.PdfService.Api.Consumers.PdfGenerationRequestedConsumer>();
         x.AddConsumer<Maliev.PdfService.Api.Consumers.ReceiptPdfRequestedConsumer>();
+        x.AddConsumer<Maliev.PdfService.Api.Consumers.DeliveryNotePdfRequestedConsumer>();
     });
 
     // --- API Configuration ---
@@ -53,6 +54,17 @@ try
     // --- Custom Services ---
     builder.Services.AddSingleton<PdfMetrics>();
     builder.AddServiceClient<IUploadServiceClient, UploadServiceClient>("UploadService");
+
+    // Add DeliveryService HTTP client for fetching delivery note data
+    builder.Services.AddHttpClient("DeliveryService", client =>
+    {
+        var baseUrl = builder.Configuration.GetConnectionString("deliveryservice")
+            ?? builder.Configuration["Services:DeliveryService:BaseUrl"];
+        if (!string.IsNullOrEmpty(baseUrl))
+        {
+            client.BaseAddress = new Uri(baseUrl);
+        }
+    });
 
     builder.Services.AddScoped<IDocumentFactory, DocumentFactory>();
     builder.Services.AddScoped<IPdfGenerator, PdfGenerator>();

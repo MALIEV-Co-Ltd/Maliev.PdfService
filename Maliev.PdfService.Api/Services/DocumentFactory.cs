@@ -33,6 +33,7 @@ public class DocumentFactory : IDocumentFactory
             DocumentType.Quotation => new QuotationDocument(MapToQuotationData(data)),
             DocumentType.Receipt => new ReceiptDocument(data),
             DocumentType.Report => new FinancialReportDocument(data),
+            DocumentType.DeliveryNote => new DeliveryNoteDocument(MapToDeliveryNoteData(data)),
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
     }
@@ -65,5 +66,20 @@ public class DocumentFactory : IDocumentFactory
         }
 
         throw new InvalidOperationException($"Data must be of type {nameof(QuotationData)} or JsonElement representing it. Actual type: {data?.GetType().Name ?? "null"}");
+    }
+
+    private static DeliveryNoteData MapToDeliveryNoteData(object data)
+    {
+        if (data is DeliveryNoteData deliveryNoteData) return deliveryNoteData;
+
+        if (data is System.Text.Json.JsonElement jsonElement)
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<DeliveryNoteData>(jsonElement.GetRawText(), new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            }) ?? throw new InvalidOperationException($"Failed to deserialize {nameof(DeliveryNoteData)} from JsonElement");
+        }
+
+        throw new InvalidOperationException($"Data must be of type {nameof(DeliveryNoteData)} or JsonElement representing it. Actual type: {data?.GetType().Name ?? "null"}");
     }
 }

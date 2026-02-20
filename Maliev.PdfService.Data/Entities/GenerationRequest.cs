@@ -57,7 +57,9 @@ public enum DocumentType
     /// <summary>Receipt document.</summary>
     Receipt,
     /// <summary>Financial or operational report.</summary>
-    Report
+    Report,
+    /// <summary>Delivery note document (ใบส่งของ).</summary>
+    DeliveryNote
 }
 
 /// <summary>
