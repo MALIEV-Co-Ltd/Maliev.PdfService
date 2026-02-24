@@ -1,3 +1,4 @@
+using Maliev.MessagingContracts.Contracts.Invoices;
 using Maliev.MessagingContracts.Generated;
 using Maliev.PdfService.Api.Models.Data;
 using Maliev.PdfService.Api.Services;

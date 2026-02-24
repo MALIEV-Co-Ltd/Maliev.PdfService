@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using Maliev.Aspire.ServiceDefaults.Authorization;
+using Maliev.MessagingContracts.Contracts.Pdf;
 using Maliev.MessagingContracts.Generated;
 using Maliev.PdfService.Api.Authorization;
 using Maliev.PdfService.Api.Models.Requests;

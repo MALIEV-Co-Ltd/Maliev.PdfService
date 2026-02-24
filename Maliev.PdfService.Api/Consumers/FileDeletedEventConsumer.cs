@@ -1,3 +1,4 @@
+using Maliev.MessagingContracts.Contracts.Uploads;
 using Maliev.MessagingContracts.Generated;
 using Maliev.PdfService.Data.Data;
 using MassTransit;

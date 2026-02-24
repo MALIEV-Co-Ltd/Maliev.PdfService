@@ -43,11 +43,11 @@ public class DeliveryNotePdfRequestedConsumer : IConsumer<DeliveryNotePdfRequest
     public async Task Consume(ConsumeContext<DeliveryNotePdfRequestedEvent> context)
     {
         var message = context.Message;
-        _logger.LogInformation("Processing PDF generation for delivery note: {DeliveryNoteId}", message.DeliveryNoteId);
+        _logger.LogInformation("Processing PDF generation for delivery note: {DeliveryNoteId}", message.Payload.DeliveryNoteId);
 
         var log = new GenerationRequest
         {
-            ReferenceId = message.DeliveryNoteId,
+            ReferenceId = message.Payload.DeliveryNoteId,
             TemplateCode = "DN-STD-01", // Standard delivery note template
             DocumentType = DocumentType.DeliveryNote,
             Status = GenerationStatus.Processing,
@@ -61,14 +61,14 @@ public class DeliveryNotePdfRequestedConsumer : IConsumer<DeliveryNotePdfRequest
         try
         {
             // Fetch delivery note data from DeliveryService
-            var deliveryNoteData = await FetchDeliveryNoteDataAsync(message.DeliveryNoteId);
+            var deliveryNoteData = await FetchDeliveryNoteDataAsync(message.Payload.DeliveryNoteId);
 
             // Generate PDF
             var pdfBytes = await _pdfGenerator.GeneratePdfAsync(DocumentType.DeliveryNote, deliveryNoteData, log.TemplateCode);
 
             // Upload to storage
-            var fileName = $"DeliveryNote_{message.DeliveryNoteId}_{Guid.NewGuid()}.pdf";
-            var storagePath = _pdfGenerator.GetStoragePath(DocumentType.DeliveryNote, message.DeliveryNoteId, fileName);
+            var fileName = $"DeliveryNote_{message.Payload.DeliveryNoteId}_{Guid.NewGuid()}.pdf";
+            var storagePath = _pdfGenerator.GetStoragePath(DocumentType.DeliveryNote, message.Payload.DeliveryNoteId, fileName);
             var url = await _uploadService.UploadFileAsync(fileName, pdfBytes, "application/pdf", storagePath);
 
             // Update generation log
@@ -77,11 +77,11 @@ public class DeliveryNotePdfRequestedConsumer : IConsumer<DeliveryNotePdfRequest
             log.CompletedAt = DateTime.UtcNow;
             await _dbContext.SaveChangesAsync();
 
-            _logger.LogInformation("Successfully generated and uploaded PDF for delivery note: {DeliveryNoteId}, URL: {Url}", message.DeliveryNoteId, url);
+            _logger.LogInformation("Successfully generated and uploaded PDF for delivery note: {DeliveryNoteId}, URL: {Url}", message.Payload.DeliveryNoteId, url);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to generate PDF for delivery note: {DeliveryNoteId}", message.DeliveryNoteId);
+            _logger.LogError(ex, "Failed to generate PDF for delivery note: {DeliveryNoteId}", message.Payload.DeliveryNoteId);
 
             log.Status = GenerationStatus.Failed;
             log.ErrorMessage = ex.Message;
