@@ -1,3 +1,7 @@
+using Maliev.MessagingContracts.Contracts.Receipts;
+using Maliev.MessagingContracts.Contracts.Uploads;
+using Maliev.MessagingContracts.Contracts.Pdf;
+using Maliev.MessagingContracts.Contracts.Invoices;
 using Moq;
 using Xunit;
 using Microsoft.Extensions.DependencyInjection;

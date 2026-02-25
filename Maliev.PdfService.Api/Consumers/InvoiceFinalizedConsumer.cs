@@ -17,6 +17,7 @@ public class InvoiceFinalizedConsumer : IConsumer<InvoiceCreatedEvent>
     private readonly IUploadServiceClient _uploadService;
     private readonly PdfDbContext _dbContext;
     private readonly ILogger<InvoiceFinalizedConsumer> _logger;
+    private readonly IInvoiceServiceClient _invoiceServiceClient;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InvoiceFinalizedConsumer"/> class.
@@ -25,12 +26,14 @@ public class InvoiceFinalizedConsumer : IConsumer<InvoiceCreatedEvent>
         IPdfGenerator pdfGenerator,
         IUploadServiceClient uploadService,
         PdfDbContext dbContext,
-        ILogger<InvoiceFinalizedConsumer> logger)
+        ILogger<InvoiceFinalizedConsumer> logger,
+        IInvoiceServiceClient invoiceServiceClient)
     {
         _pdfGenerator = pdfGenerator;
         _uploadService = uploadService;
         _dbContext = dbContext;
         _logger = logger;
+        _invoiceServiceClient = invoiceServiceClient;
     }
 
     /// <inheritdoc/>
@@ -54,11 +57,18 @@ public class InvoiceFinalizedConsumer : IConsumer<InvoiceCreatedEvent>
 
         try
         {
-            // TODO: Fetch full invoice details from InvoiceService if needed
+            var invoiceDto = await _invoiceServiceClient.GetInvoiceByIdAsync(payload.InvoiceId, context.CancellationToken);
+
             var invoiceData = new InvoiceData
             {
                 InvoiceNumber = payload.InvoiceNumber,
-                // ... map other fields from payload
+                Items = invoiceDto?.Items?.Select((item, idx) => new InvoiceItemData
+                {
+                    Index = idx + 1,
+                    Description = item.Description,
+                    Quantity = (double)item.Quantity,
+                    TotalPrice = (double)item.TotalAmount
+                }).ToList() ?? new List<InvoiceItemData>()
             };
 
             var pdfBytes = await _pdfGenerator.GeneratePdfAsync(DocumentType.Invoice, invoiceData, log.TemplateCode);

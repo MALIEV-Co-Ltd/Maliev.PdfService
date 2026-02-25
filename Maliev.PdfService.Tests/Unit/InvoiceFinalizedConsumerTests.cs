@@ -1,3 +1,4 @@
+using Maliev.MessagingContracts.Contracts.Invoices;
 using Maliev.MessagingContracts.Generated;
 using Maliev.PdfService.Api.Consumers;
 using Maliev.PdfService.Api.Services;
@@ -25,7 +26,8 @@ public class InvoiceFinalizedConsumerTests
             .Options;
         var dbContext = new PdfDbContext(options);
 
-        _consumer = new InvoiceFinalizedConsumer(_pdfGeneratorMock.Object, _uploadServiceMock.Object, dbContext, _loggerMock.Object);
+        var invoiceClientMock = new Moq.Mock<Maliev.PdfService.Api.Services.IInvoiceServiceClient>();
+        _consumer = new InvoiceFinalizedConsumer(_pdfGeneratorMock.Object, _uploadServiceMock.Object, dbContext, _loggerMock.Object, invoiceClientMock.Object);
     }
 
     [Fact]
