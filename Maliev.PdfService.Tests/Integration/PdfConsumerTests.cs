@@ -5,7 +5,7 @@ using Maliev.MessagingContracts.Contracts.Invoices;
 using Moq;
 using Xunit;
 using Microsoft.Extensions.DependencyInjection;
-using Maliev.MessagingContracts.Generated;
+using Maliev.MessagingContracts;
 using Maliev.PdfService.Api.Consumers;
 using Maliev.PdfService.Api.Services;
 using Maliev.PdfService.Data.Data;

@@ -1,5 +1,5 @@
 using Maliev.MessagingContracts.Contracts.Invoices;
-using Maliev.MessagingContracts.Generated;
+using Maliev.MessagingContracts;
 using Maliev.PdfService.Tests.Fixtures;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;

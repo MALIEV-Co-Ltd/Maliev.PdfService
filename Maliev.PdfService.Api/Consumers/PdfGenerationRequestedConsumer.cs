@@ -1,5 +1,5 @@
 using Maliev.MessagingContracts.Contracts.Pdf;
-using Maliev.MessagingContracts.Generated;
+using Maliev.MessagingContracts;
 using Maliev.PdfService.Api.Services;
 using Maliev.PdfService.Data.Data;
 using Maliev.PdfService.Data.Entities;
