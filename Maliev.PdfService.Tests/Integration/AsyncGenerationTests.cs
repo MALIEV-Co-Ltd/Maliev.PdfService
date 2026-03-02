@@ -5,7 +5,7 @@ using System.Text.Json;
 using Maliev.PdfService.Api.Models.Requests;
 using Maliev.PdfService.Api.Models.Data;
 using Maliev.PdfService.Api.Authorization;
-using Maliev.PdfService.Data.Entities;
+using Maliev.PdfService.Domain.Entities;
 
 namespace Maliev.PdfService.Tests.Integration;
 

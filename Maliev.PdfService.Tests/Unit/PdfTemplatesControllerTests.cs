@@ -1,6 +1,6 @@
 using Maliev.PdfService.Api.Controllers;
-using Maliev.PdfService.Data.Data;
-using Maliev.PdfService.Data.Entities;
+using Maliev.PdfService.Infrastructure.Data;
+using Maliev.PdfService.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Xunit;

@@ -1,9 +1,8 @@
 using Maliev.MessagingContracts.Contracts.Invoices;
-using Maliev.MessagingContracts;
 using Maliev.PdfService.Api.Consumers;
 using Maliev.PdfService.Api.Services;
-using Maliev.PdfService.Data.Data;
-using Maliev.PdfService.Data.Entities;
+using Maliev.PdfService.Infrastructure.Data;
+using Maliev.PdfService.Domain.Entities;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -36,7 +35,7 @@ public class InvoiceFinalizedConsumerTests
         // Arrange
         var invoiceId = Guid.NewGuid();
         var payload = new InvoiceCreatedEventPayload(invoiceId, "INV-001", null, null, Guid.NewGuid(), 1000.0, "USD", null, DateTimeOffset.UtcNow);
-        var message = new InvoiceCreatedEvent(Guid.NewGuid(), "InvoiceCreated", MessageType.Event, "1.0", "InvoiceService", new[] { "PdfService" }, Guid.NewGuid(), null, DateTimeOffset.UtcNow, false, payload);
+        var message = new InvoiceCreatedEvent(Guid.NewGuid(), "InvoiceCreated", Maliev.MessagingContracts.MessageType.Event, "1.0", "InvoiceService", new[] { "PdfService" }, Guid.NewGuid(), null, DateTimeOffset.UtcNow, false, payload);
         var contextMock = new Mock<ConsumeContext<InvoiceCreatedEvent>>();
         contextMock.Setup(x => x.Message).Returns(message);
 
@@ -63,7 +62,7 @@ public class InvoiceFinalizedConsumerTests
         // Arrange
         var invoiceId = Guid.NewGuid();
         var payload = new InvoiceCreatedEventPayload(invoiceId, "INV-FAIL", null, null, Guid.NewGuid(), 1000.0, "USD", null, DateTimeOffset.UtcNow);
-        var message = new InvoiceCreatedEvent(Guid.NewGuid(), "InvoiceCreated", MessageType.Event, "1.0", "InvoiceService", new[] { "PdfService" }, Guid.NewGuid(), null, DateTimeOffset.UtcNow, false, payload);
+        var message = new InvoiceCreatedEvent(Guid.NewGuid(), "InvoiceCreated", Maliev.MessagingContracts.MessageType.Event, "1.0", "InvoiceService", new[] { "PdfService" }, Guid.NewGuid(), null, DateTimeOffset.UtcNow, false, payload);
         var contextMock = new Mock<ConsumeContext<InvoiceCreatedEvent>>();
         contextMock.Setup(x => x.Message).Returns(message);
 

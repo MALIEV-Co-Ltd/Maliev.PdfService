@@ -1,12 +1,11 @@
 using Asp.Versioning;
 using Maliev.Aspire.ServiceDefaults.Authorization;
 using Maliev.MessagingContracts.Contracts.Pdf;
-using Maliev.MessagingContracts;
 using Maliev.PdfService.Api.Authorization;
 using Maliev.PdfService.Api.Models.Requests;
 using Maliev.PdfService.Api.Services;
-using Maliev.PdfService.Data.Data;
-using Maliev.PdfService.Data.Entities;
+using Maliev.PdfService.Infrastructure.Data;
+using Maliev.PdfService.Domain.Entities;
 using MassTransit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -88,7 +87,7 @@ public class GenerationController : ControllerBase
             await _publishEndpoint.Publish(new PdfGenerationCompletedEvent(
                 MessageId: Guid.NewGuid(),
                 MessageName: "PdfGenerationCompletedEvent",
-                MessageType: MessageType.Event,
+                MessageType: Maliev.MessagingContracts.MessageType.Event,
                 MessageVersion: "1.0.0",
                 PublishedBy: "PdfService",
                 ConsumedBy: ["InvoiceService", "QuotationService", "ReceiptService"],
@@ -121,7 +120,7 @@ public class GenerationController : ControllerBase
             await _publishEndpoint.Publish(new PdfGenerationFailedEvent(
                 MessageId: Guid.NewGuid(),
                 MessageName: "PdfGenerationFailedEvent",
-                MessageType: MessageType.Event,
+                MessageType: Maliev.MessagingContracts.MessageType.Event,
                 MessageVersion: "1.0.0",
                 PublishedBy: "PdfService",
                 ConsumedBy: ["InvoiceService", "QuotationService", "ReceiptService"],
@@ -171,7 +170,7 @@ public class GenerationController : ControllerBase
         await _publishEndpoint.Publish(new PdfGenerationRequestedEvent(
             MessageId: Guid.NewGuid(),
             MessageName: "PdfGenerationRequestedEvent",
-            MessageType: MessageType.Event,
+            MessageType: Maliev.MessagingContracts.MessageType.Event,
             MessageVersion: "1.0.0",
             PublishedBy: "PdfService",
             ConsumedBy: ["PdfService"],

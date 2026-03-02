@@ -1,28 +1,61 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-WORKDIR /
-COPY nuget.config ./
-COPY ["Maliev.PdfService.Api/Maliev.PdfService.Api.csproj", "Maliev.PdfService.Api/"]
-COPY ["Maliev.PdfService.Data/Maliev.PdfService.Data.csproj", "Maliev.PdfService.Data/"]
-# Since we are using project references for internal packages during dev implementation, 
-# we need to COPY them if we were building from root. 
-# But standard pattern assumes they are published as NuGet.
-# For now, I'll stick to the standard Dockerfile pattern from Constitution X.
+# syntax=docker/dockerfile:1.4
+# See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
 
+# This stage is used when running from VS in fast mode (Default for Debug configuration)
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+USER $APP_UID
+WORKDIR /app
+EXPOSE 8080
+EXPOSE 8081
+
+
+# This stage is used to build the service project
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+ARG BUILD_CONFIGURATION=Release
+WORKDIR /src
+
+# Copy nuget.config and project files
+COPY ["nuget.config", "."]
+COPY ["Maliev.PdfService.Api/Maliev.PdfService.Api.csproj", "Maliev.PdfService.Api/"]
+COPY ["Maliev.PdfService.Application/Maliev.PdfService.Application.csproj", "Maliev.PdfService.Application/"]
+COPY ["Maliev.PdfService.Domain/Maliev.PdfService.Domain.csproj", "Maliev.PdfService.Domain/"]
+COPY ["Maliev.PdfService.Infrastructure/Maliev.PdfService.Infrastructure.csproj", "Maliev.PdfService.Infrastructure/"]
+
+# Restore with GitHub Packages authentication using BuildKit secrets
 RUN --mount=type=secret,id=nuget_username \
     --mount=type=secret,id=nuget_password \
     NUGET_USERNAME=$(cat /run/secrets/nuget_username) \
     NUGET_PASSWORD=$(cat /run/secrets/nuget_password) \
-    dotnet restore "Maliev.PdfService.Api/Maliev.PdfService.Api.csproj"
-COPY . .
-WORKDIR "/Maliev.PdfService.Api"
-RUN dotnet publish -c Release -o /app/publish
+    dotnet restore "./Maliev.PdfService.Api/Maliev.PdfService.Api.csproj"
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+COPY . .
+WORKDIR "/src/Maliev.PdfService.Api"
+RUN dotnet build "./Maliev.PdfService.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
+
+# This stage is used to publish the service project to be copied to the final stage
+FROM build AS publish
+ARG BUILD_CONFIGURATION=Release
+RUN dotnet publish "./Maliev.PdfService.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+
+# This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
+FROM base AS final
 WORKDIR /app
+
+# Ensure 'app' owns the workdir (app user already exists in ASP.NET runtime image)
 RUN chown -R app:app /app
+
+# Switch to non-root user
 USER app
-COPY --from=build /app/publish .
-EXPOSE 8080
+
+# Copy published application (now owned by app)
+COPY --chown=app:app --from=publish /app/publish .
+
+# Set environment variables
 ENV ASPNETCORE_URLS=http://+:8080
-HEALTHCHECK CMD curl -f http://localhost:8080/pdf/liveness || exit 1
+ENV ASPNETCORE_ENVIRONMENT=Production
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/pdf/liveness || exit 1
+
 ENTRYPOINT ["dotnet", "Maliev.PdfService.Api.dll"]

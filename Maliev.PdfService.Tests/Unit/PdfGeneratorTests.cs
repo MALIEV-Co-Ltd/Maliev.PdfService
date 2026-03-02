@@ -1,7 +1,7 @@
 using Maliev.PdfService.Api.Models.Data;
 using Maliev.PdfService.Api.Services;
 using Maliev.PdfService.Api.Services.Layouts;
-using Maliev.PdfService.Data.Entities;
+using Maliev.PdfService.Domain.Entities;
 using Microsoft.AspNetCore.Hosting;
 using Moq;
 using QuestPDF.Infrastructure;

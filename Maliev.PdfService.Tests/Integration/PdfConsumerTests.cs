@@ -5,11 +5,10 @@ using Maliev.MessagingContracts.Contracts.Invoices;
 using Moq;
 using Xunit;
 using Microsoft.Extensions.DependencyInjection;
-using Maliev.MessagingContracts;
 using Maliev.PdfService.Api.Consumers;
 using Maliev.PdfService.Api.Services;
-using Maliev.PdfService.Data.Data;
-using Maliev.PdfService.Data.Entities;
+using Maliev.PdfService.Infrastructure.Data;
+using Maliev.PdfService.Domain.Entities;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Maliev.PdfService.Tests.Fixtures;
@@ -59,7 +58,7 @@ public class PdfConsumerTests : IClassFixture<PdfServiceTestFactory>
         var evt = new PdfGenerationRequestedEvent(
             MessageId: Guid.NewGuid(),
             MessageName: "PdfGenerationRequestedEvent",
-            MessageType: MessageType.Event,
+            MessageType: Maliev.MessagingContracts.MessageType.Event,
             MessageVersion: "1.0",
             PublishedBy: "Test",
             ConsumedBy: new[] { "Pdf" },
@@ -113,7 +112,7 @@ public class PdfConsumerTests : IClassFixture<PdfServiceTestFactory>
         var evt = new FileDeletedEvent(
             MessageId: Guid.NewGuid(),
             MessageName: "FileDeletedEvent",
-            MessageType: MessageType.Event,
+            MessageType: Maliev.MessagingContracts.MessageType.Event,
             MessageVersion: "1.0",
             PublishedBy: "Upload",
             ConsumedBy: new[] { "Pdf" },
@@ -163,7 +162,7 @@ public class PdfConsumerTests : IClassFixture<PdfServiceTestFactory>
         var evt = new ReceiptPdfRequestedEvent(
             MessageId: Guid.NewGuid(),
             MessageName: "ReceiptPdfRequestedEvent",
-            MessageType: MessageType.Event,
+            MessageType: Maliev.MessagingContracts.MessageType.Event,
             MessageVersion: "1.0",
             PublishedBy: "Receipt",
             ConsumedBy: new[] { "Pdf" },

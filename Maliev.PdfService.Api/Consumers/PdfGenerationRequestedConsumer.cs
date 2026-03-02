@@ -1,8 +1,7 @@
 using Maliev.MessagingContracts.Contracts.Pdf;
-using Maliev.MessagingContracts;
 using Maliev.PdfService.Api.Services;
-using Maliev.PdfService.Data.Data;
-using Maliev.PdfService.Data.Entities;
+using Maliev.PdfService.Infrastructure.Data;
+using Maliev.PdfService.Domain.Entities;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
@@ -85,7 +84,7 @@ public class PdfGenerationRequestedConsumer : IConsumer<PdfGenerationRequestedEv
             await _publishEndpoint.Publish(new PdfGenerationCompletedEvent(
                 MessageId: Guid.NewGuid(),
                 MessageName: "PdfGenerationCompletedEvent",
-                MessageType: MessageType.Event,
+                MessageType: Maliev.MessagingContracts.MessageType.Event,
                 MessageVersion: "1.0.0",
                 PublishedBy: "PdfService",
                 ConsumedBy: ["InvoiceService", "QuotationService", "ReceiptService"],
@@ -115,7 +114,7 @@ public class PdfGenerationRequestedConsumer : IConsumer<PdfGenerationRequestedEv
             await _publishEndpoint.Publish(new PdfGenerationFailedEvent(
                 MessageId: Guid.NewGuid(),
                 MessageName: "PdfGenerationFailedEvent",
-                MessageType: MessageType.Event,
+                MessageType: Maliev.MessagingContracts.MessageType.Event,
                 MessageVersion: "1.0.0",
                 PublishedBy: "PdfService",
                 ConsumedBy: ["InvoiceService", "QuotationService", "ReceiptService"],

@@ -9,17 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="Resources\Fonts\*.ttf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="QuestPDF" Version="2026.2.1" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Maliev.PdfService.Data\Maliev.PdfService.Data.csproj" />
+    <ProjectReference Include="..\Maliev.PdfService.Application\Maliev.PdfService.Application.csproj" />
+    <ProjectReference Include="..\Maliev.PdfService.Infrastructure\Maliev.PdfService.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Maliev.Aspire\Maliev.Aspire.ServiceDefaults\Maliev.Aspire.ServiceDefaults.csproj" />
     <ProjectReference Include="..\..\Maliev.MessagingContracts\generated\csharp\Maliev.MessagingContracts.csproj" />
   </ItemGroup>

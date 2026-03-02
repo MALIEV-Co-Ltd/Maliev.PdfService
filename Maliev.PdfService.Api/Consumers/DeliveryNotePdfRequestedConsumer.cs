@@ -1,8 +1,8 @@
 using Maliev.MessagingContracts.Contracts.Delivery;
 using Maliev.PdfService.Api.Models.Data;
 using Maliev.PdfService.Api.Services;
-using Maliev.PdfService.Data.Data;
-using Maliev.PdfService.Data.Entities;
+using Maliev.PdfService.Infrastructure.Data;
+using Maliev.PdfService.Domain.Entities;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 

@@ -1,7 +1,7 @@
 using Maliev.PdfService.Api.Models.Data;
 using Maliev.PdfService.Api.Services;
 using Maliev.PdfService.Api.Services.Layouts;
-using Maliev.PdfService.Data.Entities;
+using Maliev.PdfService.Domain.Entities;
 using Xunit;
 
 namespace Maliev.PdfService.Tests.Unit;

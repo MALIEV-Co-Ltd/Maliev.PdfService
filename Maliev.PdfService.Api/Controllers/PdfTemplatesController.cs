@@ -1,5 +1,8 @@
 using Asp.Versioning;
-using Maliev.PdfService.Data.Data;
+using Maliev.Aspire.ServiceDefaults.Authorization;
+using Maliev.PdfService.Api.Authorization;
+using Maliev.PdfService.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,6 +14,7 @@ namespace Maliev.PdfService.Api.Controllers;
 [ApiVersion("1.0")]
 [Route("pdf/v{version:apiVersion}/templates")]
 [ApiController]
+[Authorize]
 public class PdfTemplatesController : ControllerBase
 {
     private readonly PdfDbContext _dbContext;
@@ -28,6 +32,7 @@ public class PdfTemplatesController : ControllerBase
     /// </summary>
     /// <returns>A list of template summaries.</returns>
     [HttpGet]
+    [RequirePermission(PdfPermissions.TemplatesList)]
     public async Task<IActionResult> GetTemplates()
     {
         var templates = await _dbContext.PdfTemplates

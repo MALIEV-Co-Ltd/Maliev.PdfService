@@ -1,5 +1,4 @@
 using Maliev.MessagingContracts.Contracts.Invoices;
-using Maliev.MessagingContracts;
 using Maliev.PdfService.Tests.Fixtures;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,7 +21,7 @@ public class ConsumerTests : IClassFixture<PdfServiceTestFactory>
         // Arrange
         var bus = _factory.Services.GetRequiredService<IBus>();
         var payload = new InvoiceCreatedEventPayload(Guid.NewGuid(), "INV-TEST-001", null, null, Guid.NewGuid(), 1000.0, "USD", null, DateTimeOffset.UtcNow);
-        var message = new InvoiceCreatedEvent(Guid.NewGuid(), "InvoiceCreated", MessageType.Event, "1.0", "InvoiceService", new[] { "PdfService" }, Guid.NewGuid(), null, DateTimeOffset.UtcNow, false, payload);
+        var message = new InvoiceCreatedEvent(Guid.NewGuid(), "InvoiceCreated", Maliev.MessagingContracts.MessageType.Event, "1.0", "InvoiceService", new[] { "PdfService" }, Guid.NewGuid(), null, DateTimeOffset.UtcNow, false, payload);
 
         // Act
         await bus.Publish(message);

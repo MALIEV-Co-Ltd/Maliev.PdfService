@@ -3,7 +3,7 @@
 using Maliev.Aspire.ServiceDefaults;
 using Maliev.PdfService.Api.Metrics;
 using Maliev.PdfService.Api.Services;
-using Maliev.PdfService.Data.Data;
+using Maliev.PdfService.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Infrastructure;
 
@@ -19,6 +19,7 @@ try
 
     // --- Maliev Service Defaults ---
     builder.AddServiceDefaults();
+    builder.AddDefaultApiVersioning();
     builder.AddJwtAuthentication();
 
     // --- Database ---
@@ -45,9 +46,6 @@ try
         title: "MALIEV PDF Service API",
         description: "PDF generation service for the Maliev platform. Handles document rendering from templates, font resolution, and secure delivery of generated documents.");
 
-    // --- API Versioning ---
-    builder.AddDefaultApiVersioning();
-
     // --- PDF Engine Settings ---
     QuestPDF.Settings.License = LicenseType.Community;
 
@@ -59,8 +57,7 @@ try
     // Add DeliveryService HTTP client for fetching delivery note data
     builder.Services.AddHttpClient("DeliveryService", client =>
     {
-        var baseUrl = builder.Configuration.GetConnectionString("deliveryservice")
-            ?? builder.Configuration["Services:DeliveryService:BaseUrl"];
+        var baseUrl = builder.Configuration["Services:DeliveryService:BaseUrl"];
         if (!string.IsNullOrEmpty(baseUrl))
         {
             client.BaseAddress = new Uri(baseUrl);
