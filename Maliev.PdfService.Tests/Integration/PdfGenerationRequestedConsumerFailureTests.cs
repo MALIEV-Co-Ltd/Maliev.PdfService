@@ -1,3 +1,4 @@
+using Maliev.MessagingContracts;
 using Maliev.MessagingContracts.Contracts.Pdf;
 using Maliev.PdfService.Api.Consumers;
 using Maliev.PdfService.Api.Services;
@@ -37,7 +38,7 @@ public class PdfGenerationRequestedConsumerFailureTests : IClassFixture<PdfServi
         var evt = new PdfGenerationRequestedEvent(
             MessageId: Guid.NewGuid(),
             MessageName: "PdfGenerationRequestedEvent",
-            MessageType: Maliev.MessagingContracts.MessageType.Event,
+            MessageType: MessageType.Event,
             MessageVersion: "1.0",
             PublishedBy: "Test",
             ConsumedBy: new[] { "Pdf" },
@@ -89,7 +90,7 @@ public class PdfGenerationRequestedConsumerFailureTests : IClassFixture<PdfServi
         var evt = new PdfGenerationRequestedEvent(
             MessageId: Guid.NewGuid(),
             MessageName: "PdfGenerationRequestedEvent",
-            MessageType: Maliev.MessagingContracts.MessageType.Event,
+            MessageType: MessageType.Event,
             MessageVersion: "1.0",
             PublishedBy: "Test",
             ConsumedBy: new[] { "Pdf" },
@@ -146,7 +147,7 @@ public class PdfGenerationRequestedConsumerFailureTests : IClassFixture<PdfServi
         var evt = new PdfGenerationRequestedEvent(
             MessageId: Guid.NewGuid(),
             MessageName: "PdfGenerationRequestedEvent",
-            MessageType: Maliev.MessagingContracts.MessageType.Event,
+            MessageType: MessageType.Event,
             MessageVersion: "1.0",
             PublishedBy: "Test",
             ConsumedBy: new[] { "Pdf" },
@@ -201,7 +202,7 @@ public class PdfGenerationRequestedConsumerFailureTests : IClassFixture<PdfServi
         var evt = new PdfGenerationRequestedEvent(
             MessageId: Guid.NewGuid(),
             MessageName: "PdfGenerationRequestedEvent",
-            MessageType: Maliev.MessagingContracts.MessageType.Event,
+            MessageType: MessageType.Event,
             MessageVersion: "1.0",
             PublishedBy: "Test",
             ConsumedBy: new[] { "Pdf" },

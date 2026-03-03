@@ -1,3 +1,4 @@
+using Maliev.MessagingContracts;
 using Maliev.MessagingContracts.Contracts.Uploads;
 using Maliev.PdfService.Api.Consumers;
 using Maliev.PdfService.Domain.Entities;
@@ -32,7 +33,7 @@ public class FileDeletedEventConsumerEdgeCaseTests : IClassFixture<PdfServiceTes
         var evt = new FileDeletedEvent(
             MessageId: Guid.NewGuid(),
             MessageName: "FileDeletedEvent",
-            MessageType: Maliev.MessagingContracts.MessageType.Event,
+            MessageType: MessageType.Event,
             MessageVersion: "1.0",
             PublishedBy: "Upload",
             ConsumedBy: new[] { "Pdf" },
@@ -96,7 +97,7 @@ public class FileDeletedEventConsumerEdgeCaseTests : IClassFixture<PdfServiceTes
         var evt = new FileDeletedEvent(
             MessageId: Guid.NewGuid(),
             MessageName: "FileDeletedEvent",
-            MessageType: Maliev.MessagingContracts.MessageType.Event,
+            MessageType: MessageType.Event,
             MessageVersion: "1.0",
             PublishedBy: "Upload",
             ConsumedBy: new[] { "Pdf" },
@@ -155,7 +156,7 @@ public class FileDeletedEventConsumerEdgeCaseTests : IClassFixture<PdfServiceTes
         var evt = new FileDeletedEvent(
             MessageId: Guid.NewGuid(),
             MessageName: "FileDeletedEvent",
-            MessageType: Maliev.MessagingContracts.MessageType.Event,
+            MessageType: MessageType.Event,
             MessageVersion: "1.0",
             PublishedBy: "Upload",
             ConsumedBy: new[] { "Pdf" },

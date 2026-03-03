@@ -1,3 +1,4 @@
+using Maliev.MessagingContracts;
 using Maliev.MessagingContracts.Contracts.Receipts;
 using Maliev.PdfService.Api.Consumers;
 using Maliev.PdfService.Api.Services;
@@ -41,7 +42,7 @@ public class ReceiptPdfRequestedConsumerFailureTests : IClassFixture<PdfServiceT
         var evt = new ReceiptPdfRequestedEvent(
             MessageId: Guid.NewGuid(),
             MessageName: "ReceiptPdfRequestedEvent",
-            MessageType: Maliev.MessagingContracts.MessageType.Event,
+            MessageType: MessageType.Event,
             MessageVersion: "1.0",
             PublishedBy: "Receipt",
             ConsumedBy: new[] { "Pdf" },
@@ -91,7 +92,7 @@ public class ReceiptPdfRequestedConsumerFailureTests : IClassFixture<PdfServiceT
         var evt = new ReceiptPdfRequestedEvent(
             MessageId: Guid.NewGuid(),
             MessageName: "ReceiptPdfRequestedEvent",
-            MessageType: Maliev.MessagingContracts.MessageType.Event,
+            MessageType: MessageType.Event,
             MessageVersion: "1.0",
             PublishedBy: "Receipt",
             ConsumedBy: new[] { "Pdf" },

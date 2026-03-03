@@ -1,3 +1,4 @@
+using Maliev.MessagingContracts;
 using Maliev.MessagingContracts.Contracts.Invoices;
 using Maliev.PdfService.Api.Consumers;
 using Maliev.PdfService.Api.Services;
@@ -58,7 +59,7 @@ public class InvoiceServiceClientConsumerTests : IClassFixture<PdfServiceTestFac
         var evt = new InvoiceCreatedEvent(
             MessageId: Guid.NewGuid(),
             MessageName: "InvoiceCreatedEvent",
-            MessageType: Maliev.MessagingContracts.MessageType.Event,
+            MessageType: MessageType.Event,
             MessageVersion: "1.0",
             PublishedBy: "Invoice",
             ConsumedBy: new[] { "Pdf" },
