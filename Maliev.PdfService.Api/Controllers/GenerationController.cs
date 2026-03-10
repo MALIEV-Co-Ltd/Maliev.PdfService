@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using Maliev.Aspire.ServiceDefaults.Authorization;
+using Maliev.MessagingContracts;
 using Maliev.MessagingContracts.Contracts.Pdf;
 using Maliev.PdfService.Api.Authorization;
 using Maliev.PdfService.Api.Models.Requests;
@@ -87,7 +88,7 @@ public class GenerationController : ControllerBase
             await _publishEndpoint.Publish(new PdfGenerationCompletedEvent(
                 MessageId: Guid.NewGuid(),
                 MessageName: "PdfGenerationCompletedEvent",
-                MessageType: Maliev.MessagingContracts.MessageType.Event,
+                MessageType: MessageType.Event,
                 MessageVersion: "1.0.0",
                 PublishedBy: "PdfService",
                 ConsumedBy: ["InvoiceService", "QuotationService", "ReceiptService"],
@@ -120,7 +121,7 @@ public class GenerationController : ControllerBase
             await _publishEndpoint.Publish(new PdfGenerationFailedEvent(
                 MessageId: Guid.NewGuid(),
                 MessageName: "PdfGenerationFailedEvent",
-                MessageType: Maliev.MessagingContracts.MessageType.Event,
+                MessageType: MessageType.Event,
                 MessageVersion: "1.0.0",
                 PublishedBy: "PdfService",
                 ConsumedBy: ["InvoiceService", "QuotationService", "ReceiptService"],
@@ -170,7 +171,7 @@ public class GenerationController : ControllerBase
         await _publishEndpoint.Publish(new PdfGenerationRequestedEvent(
             MessageId: Guid.NewGuid(),
             MessageName: "PdfGenerationRequestedEvent",
-            MessageType: Maliev.MessagingContracts.MessageType.Event,
+            MessageType: MessageType.Event,
             MessageVersion: "1.0.0",
             PublishedBy: "PdfService",
             ConsumedBy: ["PdfService"],

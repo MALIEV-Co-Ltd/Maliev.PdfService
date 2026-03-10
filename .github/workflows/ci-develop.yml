@@ -30,16 +30,16 @@ jobs:
           echo "Switched to PackageReference for ServiceDefaults and MessagingContracts"
 
       - name: Restore dependencies
-        run: dotnet restore Maliev.PdfService.sln
+        run: dotnet restore Maliev.PdfService.slnx
         env:
           NUGET_USERNAME: ${{ github.actor }}
           NUGET_PASSWORD: ${{ secrets.GITOPS_PAT }}
 
       - name: Build
-        run: dotnet build Maliev.PdfService.sln --no-restore
+        run: dotnet build Maliev.PdfService.slnx --no-restore
 
       - name: Test
-        run: dotnet test Maliev.PdfService.sln --no-build --verbosity normal
+        run: dotnet test Maliev.PdfService.slnx --no-build --verbosity normal
         working-directory: ${{ github.workspace }}
 
       - name: Authenticate to Google Cloud
