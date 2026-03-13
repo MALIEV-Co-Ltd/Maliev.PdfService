@@ -4,17 +4,41 @@ using Maliev.PdfService.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
+using Testcontainers.PostgreSql;
 
 namespace Maliev.PdfService.Tests.Unit;
 
-public class PdfTemplatesControllerTests
+public class PdfTemplatesControllerTests : IAsyncLifetime
 {
+    private readonly PostgreSqlContainer _dbContainer = 
+                #pragma warning disable CS0618
+        new PostgreSqlBuilder().WithImage("postgres:18-alpine")
+        .Build();
+#pragma warning restore CS0618
+
+    public async Task InitializeAsync()
+    {
+        await _dbContainer.StartAsync();
+
+        var options = new DbContextOptionsBuilder<PdfDbContext>()
+            .UseNpgsql(_dbContainer.GetConnectionString())
+            .Options;
+
+        using var context = new PdfDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+    }
+
+    public async Task DisposeAsync()
+    {
+        await _dbContainer.StopAsync();
+    }
+
     [Fact]
     public async Task GetTemplates_ReturnsEmptyList_WhenNoTemplates()
     {
         // Arrange
         var options = new DbContextOptionsBuilder<PdfDbContext>()
-            .UseInMemoryDatabase(databaseName: "PdfTemplatesControllerTests_Empty")
+            .UseNpgsql(_dbContainer.GetConnectionString())
             .Options;
 
         using var context = new PdfDbContext(options);
@@ -34,7 +58,7 @@ public class PdfTemplatesControllerTests
     {
         // Arrange
         var options = new DbContextOptionsBuilder<PdfDbContext>()
-            .UseInMemoryDatabase(databaseName: "PdfTemplatesControllerTests_NotEmpty")
+            .UseNpgsql(_dbContainer.GetConnectionString())
             .Options;
 
         using var context = new PdfDbContext(options);
@@ -52,3 +76,7 @@ public class PdfTemplatesControllerTests
         Assert.NotEmpty(templates);
     }
 }
+
+
+
+

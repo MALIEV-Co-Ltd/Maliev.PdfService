@@ -65,8 +65,9 @@ public class BaseIntegrationTestFactory<TProgram, TDbContext> : WebApplicationFa
         {
             if (!_containersStarted)
             {
-                _postgresContainer = new PostgreSqlBuilder()
-                    .WithImage("postgres:18-alpine")
+                _postgresContainer = 
+                #pragma warning disable CS0618
+        new PostgreSqlBuilder().WithImage("postgres:18-alpine")
                     .Build();
 
                 _redisContainer = new RedisBuilder()
@@ -76,6 +77,7 @@ public class BaseIntegrationTestFactory<TProgram, TDbContext> : WebApplicationFa
                 _rabbitmqContainer = new RabbitMqBuilder()
                     .WithImage("rabbitmq:4.0-alpine")
                     .Build();
+#pragma warning restore CS0618
 
                 // Start all containers in parallel
                 await Task.WhenAll(
@@ -462,3 +464,7 @@ public class BaseIntegrationTestFactory<TProgram, TDbContext> : WebApplicationFa
         return client;
     }
 }
+
+
+
+

@@ -10,30 +10,47 @@ using Moq;
 using MassTransit;
 using System.Text.Json;
 using Xunit;
+using Testcontainers.PostgreSql;
 
 namespace Maliev.PdfService.Tests.Unit;
 
-public class GenerationControllerTests
+public class GenerationControllerTests : IAsyncLifetime
 {
+    private readonly PostgreSqlContainer _dbContainer = 
+                #pragma warning disable CS0618
+        new PostgreSqlBuilder().WithImage("postgres:18-alpine")
+        .Build();
+#pragma warning restore CS0618
+
     private readonly Mock<IPdfGenerator> _pdfGeneratorMock = new();
     private readonly Mock<IUploadServiceClient> _uploadServiceMock = new();
     private readonly Mock<IPublishEndpoint> _publishEndpointMock = new();
     private readonly Mock<ILogger<GenerationController>> _loggerMock = new();
-    private readonly PdfDbContext _dbContext;
-    private readonly GenerationController _controller;
+    private PdfDbContext _dbContext = null!;
+    private GenerationController _controller = null!;
 
-    public GenerationControllerTests()
+    public async Task InitializeAsync()
     {
+        await _dbContainer.StartAsync();
+
         var options = new DbContextOptionsBuilder<PdfDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .UseNpgsql(_dbContainer.GetConnectionString())
             .Options;
+
         _dbContext = new PdfDbContext(options);
+        await _dbContext.Database.EnsureCreatedAsync();
+
         _controller = new GenerationController(
             _pdfGeneratorMock.Object,
             _uploadServiceMock.Object,
             _dbContext,
             _publishEndpointMock.Object,
             _loggerMock.Object);
+    }
+
+    public async Task DisposeAsync()
+    {
+        await _dbContainer.DisposeAsync();
     }
 
     [Fact]
@@ -118,3 +135,7 @@ public class GenerationControllerTests
         Assert.Equal("Generation failed", saved.ErrorMessage);
     }
 }
+
+
+
+
