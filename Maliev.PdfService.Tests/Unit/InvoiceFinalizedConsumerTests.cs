@@ -5,6 +5,7 @@ using Maliev.PdfService.Api.Services;
 using Maliev.PdfService.Infrastructure.Data;
 using Maliev.PdfService.Domain.Entities;
 using MassTransit;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -12,19 +13,26 @@ using Xunit;
 
 namespace Maliev.PdfService.Tests.Unit;
 
-public class InvoiceFinalizedConsumerTests
+public class InvoiceFinalizedConsumerTests : IDisposable
 {
     private readonly Mock<IPdfGenerator> _pdfGeneratorMock = new();
     private readonly Mock<IUploadServiceClient> _uploadServiceMock = new();
     private readonly Mock<ILogger<InvoiceFinalizedConsumer>> _loggerMock = new();
     private readonly InvoiceFinalizedConsumer _consumer;
+    private readonly SqliteConnection _connection;
+    private readonly PdfDbContext _dbContext;
 
     public InvoiceFinalizedConsumerTests()
     {
+        _connection = new SqliteConnection("DataSource=:memory:");
+        _connection.Open();
+
         var options = new DbContextOptionsBuilder<PdfDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .UseSqlite(_connection)
             .Options;
-        var dbContext = new PdfDbContext(options);
+        _dbContext = new PdfDbContext(options);
+        _dbContext.Database.EnsureCreated();
+        var dbContext = _dbContext;
 
         var invoiceClientMock = new Moq.Mock<Maliev.PdfService.Api.Services.IInvoiceServiceClient>();
         _consumer = new InvoiceFinalizedConsumer(_pdfGeneratorMock.Object, _uploadServiceMock.Object, dbContext, _loggerMock.Object, invoiceClientMock.Object);
@@ -72,5 +80,13 @@ public class InvoiceFinalizedConsumerTests
 
         // Act & Assert
         await Assert.ThrowsAsync<Exception>(() => _consumer.Consume(contextMock.Object));
+    }
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        _dbContext.Dispose();
+        _connection.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
