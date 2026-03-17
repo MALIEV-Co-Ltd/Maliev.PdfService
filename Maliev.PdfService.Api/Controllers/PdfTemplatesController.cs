@@ -11,7 +11,7 @@ namespace Maliev.PdfService.Api.Controllers;
 /// <summary>
 /// Controller for managing PDF templates.
 /// </summary>
-[ApiVersion("1.0")]
+[ApiVersion("1")]
 [Route("pdf/v{version:apiVersion}/templates")]
 [ApiController]
 [Authorize]

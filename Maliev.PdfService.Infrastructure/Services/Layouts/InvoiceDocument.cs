@@ -1,4 +1,5 @@
 using Maliev.PdfService.Api.Models.Data;
+using Maliev.PdfService.Infrastructure.Services;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -64,7 +65,7 @@ public class InvoiceDocument : IDocument
                     table.Cell().Text(item.Index.ToString());
                     table.Cell().Text(item.Description);
                     table.Cell().Text(item.Quantity.ToString());
-                    table.Cell().Text(item.TotalPrice.ToString("C"));
+                    table.Cell().Text(CurrencyFormatHelper.Format(item.TotalPrice, Data.Currency));
                 }
             });
 

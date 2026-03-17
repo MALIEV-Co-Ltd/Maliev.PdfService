@@ -16,7 +16,7 @@ public class QuotationData
     /// <summary>The total amount.</summary>
     public double TotalAmount { get; set; }
     /// <summary>The currency code (e.g., THB).</summary>
-    public string Currency { get; set; } = "THB";
+    public string Currency { get; set; } = string.Empty;
 }
 
 /// <summary>

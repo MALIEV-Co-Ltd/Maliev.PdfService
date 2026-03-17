@@ -9,6 +9,8 @@ public class InvoiceData
     public string InvoiceNumber { get; set; } = string.Empty;
     /// <summary>The list of line items in the invoice.</summary>
     public List<InvoiceItemData> Items { get; set; } = new();
+    /// <summary>The currency code (e.g., THB, USD).</summary>
+    public string Currency { get; set; } = string.Empty;
 }
 
 /// <summary>

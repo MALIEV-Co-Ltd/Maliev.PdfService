@@ -61,6 +61,7 @@ public class InvoiceFinalizedConsumer : IConsumer<InvoiceCreatedEvent>
             var invoiceData = new InvoiceData
             {
                 InvoiceNumber = payload.InvoiceNumber,
+                Currency = payload.Currency ?? string.Empty,
                 Items = invoiceDto?.Items?.Select((item, idx) => new InvoiceItemData
                 {
                     Index = idx + 1,

@@ -16,7 +16,7 @@ namespace Maliev.PdfService.Api.Controllers;
 /// <summary>
 /// Controller for handling PDF generation requests.
 /// </summary>
-[ApiVersion("1.0")]
+[ApiVersion("1")]
 [Route("pdf/v{version:apiVersion}/generations")]
 [ApiController]
 [Authorize]
