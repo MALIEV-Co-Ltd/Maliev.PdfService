@@ -2,99 +2,103 @@
 
 This document provides essential instructions for AI agents and developers working on the Maliev.PdfService repository.
 
-## 1. Build, Lint, and Test Commands
+> **Workspace root** `B:\maliev` contains **41 independent git repos**. Each `Maliev.*` folder and `maliev-gitops` is its own repo. There is no single repo at the workspace root. Always work within the target service directory.
 
-All commands should be run from the root directory unless specified otherwise.
+---
 
-### Build
-- **Build Solution:**
-  ```bash
-  dotnet build
-  ```
-- **Clean Build:**
-  ```bash
-  dotnet clean && dotnet build
-  ```
+## Build, Test & Lint Commands
 
-### Testing
-This project uses **xUnit** for unit and integration tests.
+### .NET Service (C# — .NET 10)
 
-- **Run All Tests:**
-  ```bash
-  dotnet test
-  ```
-- **Run a Single Test:**
-  Use the `--filter` argument to run a specific test by its name.
-  ```bash
-  dotnet test --filter "DisplayName~NameOfYourTest"
-  ```
-  *Example:* `dotnet test --filter "DisplayName~GeneratePdfAsync_ReturnsPdfBytes"`
+All commands run from within this service directory (`B:\maliev\Maliev.PdfService`).
 
-- **Run Tests in a Specific File (Class):**
-  ```bash
-  dotnet test --filter "FullyQualifiedName~Namespace.ClassName"
-  ```
-  *Example:* `dotnet test --filter "FullyQualifiedName~Maliev.PdfService.Tests.Unit.PdfGeneratorTests"`
+```powershell
+# Build (treats warnings as errors — all must be fixed)
+dotnet build Maliev.PdfService.slnx
 
-### Linting & Formatting
-- **Check Formatting:**
-  ```bash
-  dotnet format --verify-no-changes
-  ```
-- **Fix Formatting:**
-  ```bash
-  dotnet format
-  ```
+# Run all tests
+dotnet test Maliev.PdfService.slnx --verbosity normal
 
-## 2. Code Style & Conventions
+# Run a single test method
+dotnet test --filter "FullyQualifiedName~PdfGeneratorTests.GeneratePdfAsync_ReturnsPdfBytes"
 
-Adhere strictly to the following C# and .NET standards.
+# Run all tests in a class
+dotnet test --filter "FullyQualifiedName~PdfGeneratorTests"
 
-### General formatting
-- **Namespaces:** Use **file-scoped namespaces** (C# 10+ feature).
-  ```csharp
-  // Good
-  namespace Maliev.PdfService.Api.Services;
+# Run with code coverage
+dotnet test Maliev.PdfService.slnx --collect:"XPlat Code Coverage"
 
-  // Avoid
-  namespace Maliev.PdfService.Api.Services { ... }
-  ```
-- **Braces:** Use **Allman style** (braces on new lines) for all control structures and blocks.
-  ```csharp
-  if (condition)
-  {
-      // code
-  }
-  ```
-- **Indentation:** Use 4 spaces. No tabs.
+# Format check
+dotnet format Maliev.PdfService.slnx
 
-### Naming Conventions
-- **Classes/Methods/Properties:** `PascalCase`.
-- **Private Fields:** `_camelCase` (underscore prefix).
-  ```csharp
-  private readonly IPdfGenerator _pdfGenerator;
-  ```
-- **Interfaces:** Prefix with `I` (e.g., `IPdfGenerator`).
-- **Async Methods:** End with `Async` suffix (e.g., `GeneratePdfAsync`).
+# EF Core migrations (Infrastructure project only)
+dotnet ef migrations add <Name> --project Maliev.PdfService.Infrastructure --startup-project Maliev.PdfService.Infrastructure
+```
 
-### Dependencies & Imports
-- **Usings:** Place `using` directives at the very top of the file.
-- **Cleanup:** Remove unused `using` directives.
-- **DI:** Use Constructor Injection. Ensure all services are registered in `Program.cs`.
+---
 
-### Types & Features
-- Use `var` when the type is obvious from the right-hand side.
-- Use nullable reference types (`string?`) where appropriate.
-- Prefer `Task.Run` for CPU-bound work in async methods if blocking the main thread is a concern.
+## Code Style & Conventions
 
-### Error Handling
-- Use `try-catch` blocks in Controllers or top-level consumers.
-- Log exceptions using `ILogger<T>` before re-throwing or returning error responses.
-- Return appropriate HTTP status codes (e.g., 500 for unhandled exceptions, 400 for bad requests).
+### Workspace Structure
+```
+Maliev.PdfService/
+├── Maliev.PdfService.Api/           # Controllers, Consumers, Middleware
+├── Maliev.PdfService.Application/   # Use cases, DTOs, Interfaces, Handlers
+├── Maliev.PdfService.Domain/        # Entities, value objects, domain interfaces
+├── Maliev.PdfService.Infrastructure/ # EF Core DbContext, repositories, HTTP clients
+├── Maliev.PdfService.Tests/         # Unit + Integration tests (xUnit)
+├── Directory.Build.props            # Central package versioning
+└── Maliev.PdfService.slnx          # Solution file (.slnx preferred over .sln)
+```
 
-### Documentation
-- Use XML documentation (`///`) for all public classes, interfaces, and methods.
-- Describe parameters and return values.
+### C# Naming & Formatting
+- **Namespaces**: File-scoped (`namespace Maliev.PdfService.Domain.Entities;`)
+- **Classes/Methods/Properties**: `PascalCase`
+- **Private fields**: `_camelCase` (underscore prefix)
+- **Parameters/locals**: `camelCase`
+- **Async methods**: Suffix with `Async` (e.g., `GeneratePdfAsync`)
+- **Interfaces**: Prefix with `I` (e.g., `IPdfGenerator`)
+- **Permissions**: GCP-style `{domain}.{plural-resource}.{action}` as `public const string` in a `Permissions` static class
+  - Valid: `pdf.documents.create`, `pdf.templates.list`
+  - Invalid: `pdf.document.create` (singular), `pdf.create` (missing resource)
+- **XML docs**: Required on ALL public methods and properties
+- **Nullable**: Enabled (`<Nullable>enable</Nullable>`). Use `?` explicitly
+- **Imports**: System first, then third-party, then local. Alphabetize within groups. Remove unused `using`
+- **Braces**: Allman style (new line) for methods and control structures. Expression-bodied for properties/accessors
+- **Indentation**: 4 spaces, LF line endings, UTF-8, trim trailing whitespace
+
+### C# Patterns
+- **DI**: Constructor injection with `private readonly` fields
+- **Controllers**: `[ApiController]`, `[ApiVersion("1")]`, `[Route("pdf/v{version:apiVersion}")]`
+- **Logging**: `ILogger<T>` with structured placeholders (never interpolate): `_logger.LogInformation("Processing {FileId}", fileId)`
+- **Error handling**: Global exception middleware. Return `ProblemDetails` / `ErrorResponse` DTOs. Never expose stack traces
+- **JSON**: Snake_case_lower for Auth service (`JsonNamingPolicy.SnakeCaseLower`); other services may vary — check existing conventions
+- **Manual mapping**: Static extension methods (`ToDto()`, `ToEntity()`). AutoMapper is banned
+- **Validation**: `System.ComponentModel.DataAnnotations` on DTOs. FluentValidation is banned
+
+---
+
+## Banned Libraries (Build Will Fail)
+
+| Banned | Use Instead |
+|--------|-------------|
+| AutoMapper | Manual mapping extensions |
+| FluentValidation | DataAnnotations or manual validation |
+| FluentAssertions | Standard xUnit `Assert.*` |
+| Swashbuckle/Swagger | Scalar (at `/{service}/scalar`) |
+| InMemoryDatabase (EF Core) | Testcontainers with real PostgreSQL |
+
+---
+
+## Testing Rules
+
+- **Framework**: xUnit with standard `Assert` (`Assert.Equal`, `Assert.NotNull`, etc.)
+- **Naming**: `MethodName_StateUnderTest_ExpectedBehavior` or `HTTP_METHOD_Path_Scenario_ExpectedStatus`
+- **Coverage**: Minimum 80% per service
+- **Integration tests**: `BaseIntegrationTestFactory<TProgram, TDbContext>` with Testcontainers (PostgreSQL, Redis, RabbitMQ). Never InMemoryDatabase
+- **System tests** (Tier 3): `AspireTestFixture` with `[Collection("AspireDomainTests")]` — shared AppHost, never one per class
+- **Eventual consistency**: Use `TestHelpers.WaitForAsync`. Never `Task.Delay`
+- **MassTransit consumers**: Must have consumer tests using `AddMassTransitTestHarness()`
 
 ### Testing Strategy (4-Tier Pyramid Context)
 
@@ -107,39 +111,38 @@ This service's tests cover **Tier 1 (Unit)** and **Tier 2 (Service Integration)*
 
 **Tier 3 (System Integration)** — cross-service workflows and event chains — is tested in `Maliev.Aspire.Tests/`.
 
-#### Key Rules
-- Use `BaseIntegrationTestFactory<TProgram, TDbContext>` for integration tests (real Testcontainers, never InMemoryDatabase)
-- Every MassTransit consumer MUST have a consumer test using `services.AddMassTransitTestHarness()`
-- Test naming: `MethodName_StateUnderTest_ExpectedBehavior`
-- Minimum 80% code coverage
-- Use `[Fact]` for single cases, `[Theory]` for parameterized tests
-
 > Full ecosystem test strategy: `Maliev.Aspire.Tests/TEST_PLAN.md`
-
-## 3. Architecture & Libraries
-
-- **Framework:** .NET 8 / ASP.NET Core.
-- **PDF Generation:** QuestPDF.
-- **Messaging:** MassTransit (RabbitMQ/ServiceBus).
-- **Data Access:** Entity Framework Core (`PdfDbContext`).
-- **Testing:** xUnit, Moq.
-
-## 4. Cursor / Copilot Rules
-
-*(No specific .cursor/rules/ or .github/copilot-instructions.md found. Follow the standard guidelines above.)*
 
 ---
 
-## Git & Version Control — Mandatory Rules
+## Mandatory Rules
 
-### 🚨 CRITICAL: Always Commit Code Changes (Non-Negotiable)
-- **You MUST commit your changes to the local repository after completing any meaningful unit of work.**
-- **Never accumulate uncommitted changes.** Do not wait until end of session or until something breaks.
-- **Commit early and often** — if a change is meaningful (even a small fix or refactor), commit it.
-- **You do NOT need to push to remote** — local commits are sufficient to protect against accidental loss.
-- **If you are unsure whether to commit, commit anyway.** Extra commits are harmless; lost work is irreversible.
-- This rule applies even if you are just "testing" or "exploring" — use git branches to isolate experimental work and commit those changes too.
+- **`TreatWarningsAsErrors = true`**: Zero warnings allowed. No suppression
+- **`[RequirePermission("domain.resources.action")]`**: On all endpoints, not plain `[Authorize]`
+- **API versioning**: All routes versioned (`v1/`)
+- **Service prefix**: Routes prefixed with service domain (e.g., `/pdf`)
+- **Scalar docs**: Configured at `/pdf/scalar`
+- **Secrets**: Never hardcoded. Use GCP Secret Manager or environment variables
+- **Async/await**: All the way down. Pass `CancellationToken`
+- **EF Core Design package**: Only in Infrastructure project, never in Api
+- **PostgreSQL xmin**: Shadow property only — `entity.Property<uint>("xmin").HasColumnType("xid").IsRowVersion()`. Never add entity property
+- **Temporary files**: Generate in `/temp` folder, clean up afterwards
 
-### 🚨 CRITICAL: Never Use `git checkout` to Restore Broken Files
-- **NEVER use `git checkout` to restore or recover files.** This operation discards uncommitted changes permanently and will result in data loss.
-- **To undo/recover from broken files: first commit your current changes, then use `git revert` or `git reset --soft` to safely undo.
+---
+
+## Architecture & Libraries
+
+- **Framework:** .NET 10 / ASP.NET Core
+- **PDF Generation:** QuestPDF
+- **Messaging:** MassTransit (RabbitMQ/ServiceBus)
+- **Data Access:** Entity Framework Core (`PdfDbContext`)
+- **Testing:** xUnit, Moq
+
+---
+
+## Git Rules
+
+- Each `Maliev.*` folder is an independent git repo. `cd` into it before git commands
+- **Commit early and often** after every meaningful unit of work. Do not accumulate changes
+- **Never use `git checkout` to restore files** — commit first, then `git revert` or `git reset --soft`
+- Feature branches merged to `develop` via PR. Do not push without being asked
