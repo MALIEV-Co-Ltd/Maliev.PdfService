@@ -19,7 +19,6 @@ namespace Maliev.PdfService.Api.Controllers;
 [ApiVersion("1")]
 [Route("pdf/v{version:apiVersion}/generations")]
 [ApiController]
-[Authorize]
 public class GenerationController : ControllerBase
 {
     private readonly IPdfGenerator _pdfGenerator;

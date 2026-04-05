@@ -14,7 +14,6 @@ namespace Maliev.PdfService.Api.Controllers;
 [ApiVersion("1")]
 [Route("pdf/v{version:apiVersion}/templates")]
 [ApiController]
-[Authorize]
 public class PdfTemplatesController : ControllerBase
 {
     private readonly PdfDbContext _dbContext;
