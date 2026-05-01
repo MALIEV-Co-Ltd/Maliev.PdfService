@@ -28,16 +28,45 @@ public class UploadServiceClientTests
     public async Task UploadFileAsync_ReturnsStoragePath_OnSuccess()
     {
         // Arrange
+        var uploadId = Guid.NewGuid().ToString();
         var expectedPath = "folder/file.pdf";
         _handlerMock.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage
+            .ReturnsAsync((HttpRequestMessage request, CancellationToken _) =>
             {
-                StatusCode = HttpStatusCode.OK,
-                Content = JsonContent.Create(new { StoragePath = expectedPath })
+                if (request.Method == HttpMethod.Post && request.RequestUri?.PathAndQuery == "/upload/v1/uploads/resumable")
+                {
+                    return new HttpResponseMessage
+                    {
+                        StatusCode = HttpStatusCode.OK,
+                        Content = JsonContent.Create(new
+                        {
+                            uploadId = uploadId,
+                            sessionUri = "http://upload-session/upload",
+                            expiresAt = DateTime.UtcNow.AddMinutes(15),
+                            totalSize = 1
+                        })
+                    };
+                }
+
+                if (request.Method == HttpMethod.Put && request.RequestUri?.AbsoluteUri == "http://upload-session/upload")
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK);
+                }
+
+                if (request.Method == HttpMethod.Post && request.RequestUri?.PathAndQuery == $"/upload/v1/uploads/resumable/{uploadId}/complete")
+                {
+                    return new HttpResponseMessage
+                    {
+                        StatusCode = HttpStatusCode.OK,
+                        Content = JsonContent.Create(new { storagePath = expectedPath })
+                    };
+                }
+
+                return new HttpResponseMessage(HttpStatusCode.NotFound);
             });
 
         // Act

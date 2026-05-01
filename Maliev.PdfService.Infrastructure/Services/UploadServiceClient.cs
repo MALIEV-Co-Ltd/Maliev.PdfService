@@ -43,13 +43,12 @@ public class UploadServiceClient : IUploadServiceClient
         var session = await initiateResponse.Content.ReadFromJsonAsync<InitiateResumableUploadResponse>(cancellationToken: cancellationToken)
             ?? throw new InvalidOperationException("UploadService returned an empty resumable session");
 
-        using var gcsClient = new HttpClient();
         using var fileContent = new ByteArrayContent(content);
         fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
         fileContent.Headers.ContentLength = content.LongLength;
         fileContent.Headers.ContentRange = new ContentRangeHeaderValue(0, content.LongLength - 1, content.LongLength);
 
-        var gcsResponse = await gcsClient.PutAsync(session.SessionUri, fileContent, cancellationToken);
+        var gcsResponse = await _httpClient.PutAsync(session.SessionUri, fileContent, cancellationToken);
         if (!gcsResponse.IsSuccessStatusCode)
         {
             var error = await gcsResponse.Content.ReadAsStringAsync(cancellationToken);
