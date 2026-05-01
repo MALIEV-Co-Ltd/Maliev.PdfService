@@ -24,28 +24,68 @@ public class UploadServiceClient : IUploadServiceClient
     /// <inheritdoc/>
     public async Task<string> UploadFileAsync(string fileName, byte[] content, string contentType, string storagePath, CancellationToken cancellationToken = default)
     {
-        using var requestContent = new MultipartFormDataContent();
+        var initiateRequest = new InitiateResumableUploadRequest(
+            Path: storagePath,
+            FileName: fileName,
+            ServiceName: "PdfService",
+            ContentType: contentType,
+            TotalSize: content.LongLength,
+            Overwrite: true);
 
-        var fileContent = new ByteArrayContent(content);
-        fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
-        requestContent.Add(fileContent, "file", fileName);
-
-        requestContent.Add(new StringContent(storagePath), "path");
-        requestContent.Add(new StringContent("pdf_service"), "service_name");
-        requestContent.Add(new StringContent("true"), "overwrite");
-
-        var response = await _httpClient.PostAsync("upload/v1/uploads", requestContent, cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
+        var initiateResponse = await _httpClient.PostAsJsonAsync("upload/v1/uploads/resumable", initiateRequest, cancellationToken);
+        if (!initiateResponse.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadAsStringAsync(cancellationToken);
-            _logger.LogError("Failed to upload file to UploadService. Status: {StatusCode}, Error: {Error}", response.StatusCode, error);
-            throw new InvalidOperationException($"Failed to upload file to UploadService: {response.StatusCode}");
+            var error = await initiateResponse.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogError("Failed to initiate UploadService upload. Status: {StatusCode}, Error: {Error}", initiateResponse.StatusCode, error);
+            throw new InvalidOperationException($"Failed to initiate UploadService upload: {initiateResponse.StatusCode}");
         }
 
-        var result = await response.Content.ReadFromJsonAsync<UploadResponse>(cancellationToken: cancellationToken);
+        var session = await initiateResponse.Content.ReadFromJsonAsync<InitiateResumableUploadResponse>(cancellationToken: cancellationToken)
+            ?? throw new InvalidOperationException("UploadService returned an empty resumable session");
+
+        using var gcsClient = new HttpClient();
+        using var fileContent = new ByteArrayContent(content);
+        fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
+        fileContent.Headers.ContentLength = content.LongLength;
+        fileContent.Headers.ContentRange = new ContentRangeHeaderValue(0, content.LongLength - 1, content.LongLength);
+
+        var gcsResponse = await gcsClient.PutAsync(session.SessionUri, fileContent, cancellationToken);
+        if (!gcsResponse.IsSuccessStatusCode)
+        {
+            var error = await gcsResponse.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogError("Failed to upload file directly to GCS. Status: {StatusCode}, Error: {Error}", gcsResponse.StatusCode, error);
+            throw new InvalidOperationException($"Failed to upload file to GCS: {gcsResponse.StatusCode}");
+        }
+
+        var completeResponse = await _httpClient.PostAsJsonAsync(
+            $"upload/v1/uploads/resumable/{session.UploadId}/complete",
+            new { },
+            cancellationToken);
+
+        if (!completeResponse.IsSuccessStatusCode)
+        {
+            var error = await completeResponse.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogError("Failed to complete UploadService upload. Status: {StatusCode}, Error: {Error}", completeResponse.StatusCode, error);
+            throw new InvalidOperationException($"Failed to complete UploadService upload: {completeResponse.StatusCode}");
+        }
+
+        var result = await completeResponse.Content.ReadFromJsonAsync<UploadResponse>(cancellationToken: cancellationToken);
         return result?.StoragePath ?? throw new InvalidOperationException("UploadService returned empty storage path");
     }
 
     private sealed record UploadResponse([property: System.Text.Json.Serialization.JsonPropertyName("storagePath")] string StoragePath);
+
+    private sealed record InitiateResumableUploadRequest(
+        string Path,
+        string FileName,
+        string ServiceName,
+        string ContentType,
+        long TotalSize,
+        bool Overwrite);
+
+    private sealed record InitiateResumableUploadResponse(
+        string UploadId,
+        string SessionUri,
+        DateTime ExpiresAt,
+        long TotalSize);
 }

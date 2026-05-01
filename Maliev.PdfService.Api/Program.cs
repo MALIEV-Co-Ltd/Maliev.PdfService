@@ -51,7 +51,9 @@ try
 
     // --- Custom Services ---
     builder.Services.AddSingleton<PdfMetrics>();
-    builder.AddServiceClient<IUploadServiceClient, UploadServiceClient>("UploadService");
+    builder.AddAuthenticatedServiceClient<IUploadServiceClient, UploadServiceClient>(
+        "UploadService",
+        sourceServiceName: "pdf");
     builder.AddServiceClient<IInvoiceServiceClient, InvoiceServiceClient>("InvoiceService");
 
     // Add DeliveryService HTTP client for fetching delivery note data

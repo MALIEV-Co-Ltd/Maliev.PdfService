@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Maliev.PdfService.Infrastructure.Migrations
 {
     [DbContext(typeof(PdfDbContext))]
-    [Migration("20260325081503_InitialCreate")]
+    [Migration("20260501120408_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
