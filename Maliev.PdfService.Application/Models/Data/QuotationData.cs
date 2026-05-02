@@ -53,6 +53,12 @@ public class QuotationData
     /// <summary>Customer address.</summary>
     public string? CustomerAddress { get; set; }
 
+    /// <summary>Customer billing address.</summary>
+    public string? BillingAddress { get; set; }
+
+    /// <summary>Customer shipping address.</summary>
+    public string? ShippingAddress { get; set; }
+
     /// <summary>Contact person name at the customer.</summary>
     public string? ContactPerson { get; set; }
 

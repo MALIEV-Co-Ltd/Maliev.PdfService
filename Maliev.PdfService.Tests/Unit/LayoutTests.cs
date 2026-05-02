@@ -85,6 +85,98 @@ public class LayoutTests
     }
 
     /// <summary>
+    /// Tests that QuotationDocument supports complete customer and line item details.
+    /// </summary>
+    [Fact]
+    public void QuotationDocument_GeneratesPdf_WithCompleteQuoteDetails()
+    {
+        // Arrange
+        var document = new QuotationDocument(new QuotationData
+        {
+            QuotationNumber = "Q-COMPLETE",
+            CustomerName = "Acme Thailand",
+            CustomerType = "Corporate",
+            CustomerTaxId = "0105559999999",
+            ContactPerson = "Jane Buyer",
+            BillingAddress = "88 Billing Road, Bangkok 10110",
+            ShippingAddress = "99 Shipping Road, Nonthaburi 11120",
+            Items =
+            [
+                new QuotationItemData
+                {
+                    Index = 1,
+                    MaterialName = "PLA - bracket.step",
+                    ManufacturingProcess = "3D Printing (FDM)",
+                    Quantity = 2,
+                    UnitPrice = 100,
+                    LineTotal = 200,
+                    Notes = "Finish: As-printed | Tolerance: FDM Standard +-0.3mm | Color: Black | Drawing: bracket-drawing.pdf"
+                }
+            ],
+            Subtotal = 200,
+            TaxAmount = 14,
+            TotalAmount = 214,
+            DeliveryExpectations = "7 business days after order confirmation",
+            SpecialTerms = "Prices are indicative until project review is completed.",
+        });
+
+        // Act
+        var pdf = document.GeneratePdf();
+
+        // Assert
+        Assert.NotNull(pdf);
+        Assert.NotEmpty(pdf);
+    }
+
+    /// <summary>
+    /// Tests that QuotationDocument loads embedded layout resources independent of the current working directory.
+    /// </summary>
+    [Fact]
+    public void QuotationDocument_GeneratesPdf_WhenCurrentDirectoryDoesNotContainResources()
+    {
+        // Arrange
+        var originalDirectory = Directory.GetCurrentDirectory();
+        var temporaryDirectory = Path.Combine(Path.GetTempPath(), $"pdf-layout-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(temporaryDirectory);
+
+        try
+        {
+            Directory.SetCurrentDirectory(temporaryDirectory);
+            var document = new QuotationDocument(new QuotationData
+            {
+                QuotationNumber = "Q-RESOURCE",
+                CustomerName = "Customer",
+                Items =
+                [
+                    new QuotationItemData
+                    {
+                        Index = 1,
+                        MaterialName = "PLA - bracket.step",
+                        ManufacturingProcess = "FDM",
+                        Quantity = 2,
+                        UnitPrice = 100,
+                        LineTotal = 200
+                    }
+                ],
+                Subtotal = 200,
+                TotalAmount = 200
+            });
+
+            // Act
+            var pdf = document.GeneratePdf();
+
+            // Assert
+            Assert.NotNull(pdf);
+            Assert.NotEmpty(pdf);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(originalDirectory);
+            Directory.Delete(temporaryDirectory, recursive: true);
+        }
+    }
+
+    /// <summary>
     /// Tests that ReceiptDocument generates a PDF.
     /// </summary>
     [Fact]

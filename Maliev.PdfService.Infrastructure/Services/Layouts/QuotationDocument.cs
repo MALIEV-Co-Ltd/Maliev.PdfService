@@ -37,19 +37,13 @@ public class QuotationDocument : IDocument
             page.Margin(40);
             page.DefaultTextStyle(x => x.FontFamily("Roboto", "Noto Sans Thai").FontSize(10));
 
-            page.Foreground().Column(fg =>
-            {
-                fg.Item().PaddingTop(99, Unit.Millimetre).Width(8).LineHorizontal(1).LineColor(Colors.Black);
-                fg.Item().PaddingTop(99, Unit.Millimetre).Width(8).LineHorizontal(1).LineColor(Colors.Black);
-            });
-
             page.Header().Column(header =>
             {
                 header.Item().Row(headerRow =>
                 {
                     headerRow.RelativeItem().Column(col =>
                     {
-                        col.Item().Height(20).Width(60).Svg(File.ReadAllText("Resources/MALIEV_BLACK.svg"));
+                        col.Item().Height(20).Width(60).Svg(ReadResourceText("MALIEV_BLACK.svg"));
                         col.Item().PaddingTop(3).Text("MALIEV Co., Ltd. (Head Office) | สำนักงานใหญ่").FontSize(8).Bold();
                         col.Item().Text("36/1 Moo 3, Khlong Khoi, Pak Kret, Nonthaburi 11120").FontSize(8).FontColor(Colors.Grey.Darken1);
                         col.Item().Text("บริษัท มาลีฟ จำกัด 36/1 หมู่ 3 ต.คลองขอย อ.ปากเกร็ด จ.นนทบุรี 11120").FontSize(8).FontColor(Colors.Grey.Darken1);
@@ -71,7 +65,7 @@ public class QuotationDocument : IDocument
 
             page.Content().PaddingVertical(12).Column(content =>
             {
-                content.Item().PaddingBottom(10).Row(row =>
+                content.Item().PaddingBottom(12).Row(row =>
                 {
                     row.RelativeItem().Column(col =>
                     {
@@ -90,10 +84,21 @@ public class QuotationDocument : IDocument
                             if (!string.IsNullOrEmpty(Data.CustomerTaxId))
                                 col.Item().Text($"เลขประจำตัวประชาชน: {Data.CustomerTaxId}").FontSize(8);
                         }
-                        if (!string.IsNullOrEmpty(Data.CustomerAddress))
-                            col.Item().Text(Data.CustomerAddress).FontSize(8);
                         if (!string.IsNullOrEmpty(Data.ContactPerson))
                             col.Item().Text($"Attn: {Data.ContactPerson}").FontSize(8);
+
+                        var billingAddress = Data.BillingAddress ?? Data.CustomerAddress;
+                        if (!string.IsNullOrEmpty(billingAddress))
+                        {
+                            col.Item().PaddingTop(4).Text("Billing address").FontSize(7).Bold().FontColor(Colors.Grey.Darken1);
+                            col.Item().Text(billingAddress).FontSize(8);
+                        }
+
+                        if (!string.IsNullOrEmpty(Data.ShippingAddress))
+                        {
+                            col.Item().PaddingTop(3).Text("Shipping address").FontSize(7).Bold().FontColor(Colors.Grey.Darken1);
+                            col.Item().Text(Data.ShippingAddress).FontSize(8);
+                        }
                     });
 
                     row.ConstantItem(180).Column(col =>
@@ -118,19 +123,17 @@ public class QuotationDocument : IDocument
                     });
                 });
 
-                content.Item().LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
-
-                content.Item().PaddingTop(8).Table(table =>
+                content.Item().PaddingTop(6).Table(table =>
                 {
                     table.ColumnsDefinition(columns =>
                     {
-                        columns.ConstantColumn(28);
-                        columns.RelativeColumn(2);
-                        columns.RelativeColumn(1);
-                        columns.ConstantColumn(45);
-                        columns.ConstantColumn(40);
-                        columns.ConstantColumn(90);
-                        columns.ConstantColumn(90);
+                        columns.ConstantColumn(22);
+                        columns.RelativeColumn(3.5f);
+                        columns.RelativeColumn(1.6f);
+                        columns.ConstantColumn(32);
+                        columns.ConstantColumn(30);
+                        columns.ConstantColumn(75);
+                        columns.ConstantColumn(75);
                     });
 
                     table.Header(h =>
@@ -154,7 +157,7 @@ public class QuotationDocument : IDocument
                             if (!string.IsNullOrEmpty(item.Notes))
                                 col.Item().Text(item.Notes).FontSize(7).FontColor(Colors.Grey.Darken1);
                         });
-                        table.Cell().Element(c => DataCell(c, bg).ShowEntire()).Text(item.ManufacturingProcess ?? "");
+                        table.Cell().Element(c => DataCell(c, bg).ShowEntire()).Text(item.ManufacturingProcess ?? string.Empty);
                         table.Cell().Element(c => DataCell(c, bg).ShowEntire()).AlignRight().Text(item.Quantity.ToString("N0"));
                         table.Cell().Element(c => DataCell(c, bg).ShowEntire()).Text(item.QuantityUnit);
                         table.Cell().Element(c => DataCell(c, bg).ShowEntire()).AlignRight().Text(item.UnitPrice.ToString("N2"));
@@ -220,11 +223,11 @@ public class QuotationDocument : IDocument
                     });
                 });
 
-                content.Item().PaddingTop(12).LineHorizontal(1).LineColor(Colors.Grey.Lighten3);
+                content.Item().PaddingTop(14).LineHorizontal(1).LineColor(Colors.Grey.Lighten3);
 
                 if (!string.IsNullOrEmpty(Data.DeliveryExpectations))
                 {
-                    content.Item().PaddingTop(6).Row(r =>
+                    content.Item().PaddingTop(8).Row(r =>
                     {
                         r.ConstantItem(100).Text("Lead Time:").Bold().FontSize(9);
                         r.RelativeItem().Text(Data.DeliveryExpectations).FontSize(9);
@@ -233,7 +236,7 @@ public class QuotationDocument : IDocument
 
                 if (!string.IsNullOrEmpty(Data.SpecialTerms))
                 {
-                    content.Item().PaddingTop(6).Column(col =>
+                    content.Item().PaddingTop(12).Column(col =>
                     {
                         col.Item().Text("เงื่อนไขพิเศษ / SPECIAL TERMS:").Bold().FontSize(8).FontColor(Colors.Grey.Darken1);
                         col.Item().PaddingTop(3).Text(Data.SpecialTerms).FontSize(9);
@@ -249,19 +252,7 @@ public class QuotationDocument : IDocument
                     });
                 }
 
-                content.Item().PaddingTop(15).Column(disclaimerCol =>
-                {
-                    disclaimerCol.Item().LineHorizontal(1).LineColor(Colors.Grey.Lighten3);
-                    disclaimerCol.Item().PaddingTop(6).Text(
-                        "This quotation is valid until the specified date. Prices are subject to change after the validity period. " +
-                        "E&OE. (Errors and Omissions Excepted)"
-                    ).FontSize(7).FontColor(Colors.Grey.Darken1).Italic();
-                });
-
-                // Signatures follow content naturally (not pushed to absolute page bottom)
-                content.Item().PaddingBottom(60);
-
-                content.Item().Row(row =>
+                content.Item().ExtendVertical().AlignBottom().PaddingBottom(10).Row(row =>
                 {
                     row.RelativeItem().Column(col =>
                     {
@@ -281,16 +272,24 @@ public class QuotationDocument : IDocument
                 });
             });
 
-            page.Footer().Row(row =>
+            page.Footer().Column(footer =>
             {
-                row.RelativeItem().Text("Maliev Co., Ltd.").FontSize(7);
-                row.RelativeItem().AlignCenter().Text(Data.QuotationNumber).FontSize(7);
-                row.RelativeItem().AlignRight().Text(text =>
+                footer.Item().PaddingBottom(4).Text(
+                    "This quotation is valid until the specified date. Prices are subject to change after the validity period. " +
+                    "E&OE. (Errors and Omissions Excepted)"
+                ).FontSize(7).FontColor(Colors.Grey.Darken1).Italic();
+
+                footer.Item().Row(row =>
                 {
-                    text.Span("Page ").FontSize(7);
-                    text.CurrentPageNumber().FontSize(7);
-                    text.Span(" of ").FontSize(7);
-                    text.TotalPages().FontSize(7);
+                    row.RelativeItem().Text("Maliev Co., Ltd.").FontSize(7);
+                    row.RelativeItem().AlignCenter().Text(Data.QuotationNumber).FontSize(7);
+                    row.RelativeItem().AlignRight().Text(text =>
+                    {
+                        text.Span("Page ").FontSize(7);
+                        text.CurrentPageNumber().FontSize(7);
+                        text.Span(" of ").FontSize(7);
+                        text.TotalPages().FontSize(7);
+                    });
                 });
             });
         });
@@ -312,5 +311,11 @@ public class QuotationDocument : IDocument
             .Background(backgroundColor)
             .Padding(5)
             .DefaultTextStyle(x => x.FontSize(9));
+    }
+
+    private static string ReadResourceText(string fileName)
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "Resources", fileName);
+        return File.ReadAllText(path);
     }
 }
