@@ -12,6 +12,10 @@ namespace Maliev.PdfService.Api.Services.Layouts;
 /// </summary>
 public class QuotationDocument : IDocument
 {
+    private const string QuotationValidityNotice =
+        "This quotation is valid until the specified date. Prices are subject to change after the validity period. " +
+        "E&OE. (Errors and Omissions Excepted)";
+
     /// <summary>
     /// The quotation data.
     /// </summary>
@@ -100,7 +104,15 @@ public class QuotationDocument : IDocument
                     });
                 });
 
-                content.Item().PaddingTop(6).Table(table =>
+                content.Item()
+                    .PaddingTop(6)
+                    .PaddingBottom(4)
+                    .AlignRight()
+                    .Text(QuotationValidityNotice)
+                    .FontSize(7)
+                    .FontColor(Colors.Grey.Darken1);
+
+                content.Item().Table(table =>
                 {
                     table.ColumnsDefinition(columns =>
                     {
@@ -246,11 +258,6 @@ public class QuotationDocument : IDocument
 
             page.Footer().Column(footer =>
             {
-                footer.Item().PaddingBottom(4).Text(
-                    "This quotation is valid until the specified date. Prices are subject to change after the validity period. " +
-                    "E&OE. (Errors and Omissions Excepted)"
-                ).FontSize(7).FontColor(Colors.Grey.Darken1).Italic();
-
                 footer.Item().Row(row =>
                 {
                     row.RelativeItem().Text("Maliev Co., Ltd.").FontSize(7);
