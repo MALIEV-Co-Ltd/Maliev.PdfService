@@ -70,40 +70,14 @@ public class QuotationDocument : IDocument
                     row.RelativeItem().Column(col =>
                     {
                         col.Item().Text("เสนอให้ / QUOTE TO:").Bold().FontSize(8).FontColor(Colors.Grey.Darken1);
-                        col.Item().PaddingTop(3);
-                        if (Data.CustomerType == "Corporate")
-                        {
-                            var branch = string.IsNullOrEmpty(Data.CustomerBranch) ? "" : $" ({Data.CustomerBranch})";
-                            col.Item().Text($"{Data.CustomerName}{branch}").FontSize(11).Bold();
-                            if (!string.IsNullOrEmpty(Data.CustomerTaxId))
-                                col.Item().Text($"เลขประจำตัวผู้เสียภาษี: {Data.CustomerTaxId}").FontSize(8);
-                        }
-                        else
-                        {
-                            col.Item().Text(Data.CustomerName).FontSize(11).Bold();
-                            if (!string.IsNullOrEmpty(Data.CustomerTaxId))
-                                col.Item().Text($"เลขประจำตัวประชาชน: {Data.CustomerTaxId}").FontSize(8);
-                        }
-                        if (!string.IsNullOrEmpty(Data.ContactPerson))
-                            col.Item().Text($"Attn: {Data.ContactPerson}").FontSize(8);
-                        if (!string.IsNullOrEmpty(Data.CustomerPhone))
-                            col.Item().Text($"Tel: {Data.CustomerPhone}").FontSize(8);
+                        col.Item().PaddingTop(3).Element(ComposeCustomerLines);
 
-                        var billingAddress = Data.BillingAddress ?? Data.CustomerAddress;
-                        if (!string.IsNullOrEmpty(billingAddress))
-                        {
-                            col.Item().PaddingTop(4).Text("Billing address").FontSize(7).Bold().FontColor(Colors.Grey.Darken1);
-                            col.Item().Text(billingAddress).FontSize(8);
-                        }
-
-                        if (!string.IsNullOrEmpty(Data.ShippingAddress))
-                        {
-                            col.Item().PaddingTop(3).Text("Shipping address").FontSize(7).Bold().FontColor(Colors.Grey.Darken1);
-                            col.Item().Text(Data.ShippingAddress).FontSize(8);
-                        }
+                        var billingAddressLines = GetLines(Data.BillingAddressLines, Data.BillingAddress ?? Data.CustomerAddress);
+                        if (billingAddressLines.Count > 0)
+                            col.Item().PaddingTop(8).Element(container => ComposeAddressBlock(container, "Billing address", billingAddressLines));
                     });
 
-                    row.ConstantItem(180).Column(col =>
+                    row.ConstantItem(210).Column(col =>
                     {
                         col.Item().Table(dateTable =>
                         {
@@ -116,12 +90,13 @@ public class QuotationDocument : IDocument
                             dateTable.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4).Text("Issue Date").FontSize(8).Bold();
                             dateTable.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight().Text(Data.QuotationDate.ToString("dd MMM yyyy")).FontSize(8);
 
-                            dateTable.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4).Text("Valid From").FontSize(8).Bold();
-                            dateTable.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight().Text(Data.ValidityStart.ToString("dd MMM yyyy")).FontSize(8);
-
                             dateTable.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4).Text("Valid Until").FontSize(8).Bold();
                             dateTable.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight().Text(Data.ValidityEnd.ToString("dd MMM yyyy")).FontSize(8).Bold();
                         });
+
+                        var shippingAddressLines = GetLines(Data.ShippingAddressLines, Data.ShippingAddress);
+                        if (shippingAddressLines.Count > 0)
+                            col.Item().PaddingTop(8).Element(container => ComposeAddressBlock(container, "Shipping address", shippingAddressLines));
                     });
                 });
 
@@ -155,11 +130,17 @@ public class QuotationDocument : IDocument
                         table.Cell().Element(c => DataCell(c, bg).ShowEntire()).AlignCenter().Text(item.Index.ToString());
                         table.Cell().Element(c => DataCell(c, bg).ShowEntire()).Column(col =>
                         {
-                            col.Item().Text(item.MaterialName).Bold();
-                            if (!string.IsNullOrEmpty(item.Notes))
-                                col.Item().Text(item.Notes).FontSize(7).FontColor(Colors.Grey.Darken1);
+                            col.Item().Text(item.PartName ?? item.MaterialName).Bold();
+                            var detailLines = GetLines(item.DetailLines, item.Notes);
+                            foreach (var detailLine in detailLines)
+                                col.Item().Text(detailLine).FontSize(7).FontColor(Colors.Grey.Darken1);
                         });
-                        table.Cell().Element(c => DataCell(c, bg).ShowEntire()).Text(item.ManufacturingProcess ?? string.Empty);
+                        table.Cell().Element(c => DataCell(c, bg).ShowEntire()).Column(col =>
+                        {
+                            col.Item().Text(item.ManufacturingProcess ?? string.Empty);
+                            if (!string.IsNullOrWhiteSpace(item.MaterialName))
+                                col.Item().Text(item.MaterialName).FontSize(7).FontColor(Colors.Grey.Darken1);
+                        });
                         table.Cell().Element(c => DataCell(c, bg).ShowEntire()).AlignRight().Text(item.Quantity.ToString("N0"));
                         table.Cell().Element(c => DataCell(c, bg).ShowEntire()).Text(item.QuantityUnit);
                         table.Cell().Element(c => DataCell(c, bg).ShowEntire()).AlignRight().Text(item.UnitPrice.ToString("N2"));
@@ -302,6 +283,56 @@ public class QuotationDocument : IDocument
             .Background(backgroundColor)
             .Padding(5)
             .DefaultTextStyle(x => x.FontSize(9));
+    }
+
+    private void ComposeCustomerLines(IContainer container)
+    {
+        var lines = Data.CustomerDisplayLines.Count > 0
+            ? Data.CustomerDisplayLines
+            : BuildFallbackCustomerLines();
+
+        container.Column(col =>
+        {
+            foreach (var line in lines)
+                col.Item().Text(line).FontSize(9).Bold();
+        });
+    }
+
+    private List<string> BuildFallbackCustomerLines()
+    {
+        var lines = new List<string>();
+        var branch = string.IsNullOrEmpty(Data.CustomerBranch) ? string.Empty : $" ({Data.CustomerBranch})";
+
+        if (!string.IsNullOrEmpty(Data.ContactPerson))
+            lines.Add(string.IsNullOrEmpty(Data.CustomerPhone) ? Data.ContactPerson : $"{Data.ContactPerson} ({Data.CustomerPhone})");
+
+        lines.Add(Data.CustomerType == "Corporate" ? $"{Data.CustomerName}{branch}" : Data.CustomerName);
+
+        if (Data.CustomerType != "Corporate" && !string.IsNullOrEmpty(Data.CustomerPhone))
+            lines.Add(Data.CustomerPhone);
+
+        return lines;
+    }
+
+    private static void ComposeAddressBlock(IContainer container, string title, IReadOnlyList<string> addressLines)
+    {
+        container.Column(col =>
+        {
+            col.Item().Text(title).FontSize(7).Bold().FontColor(Colors.Grey.Darken1);
+            foreach (var line in addressLines)
+                col.Item().Text(line).FontSize(8);
+        });
+    }
+
+    private static List<string> GetLines(IReadOnlyList<string> lines, string? fallback)
+    {
+        if (lines.Count > 0)
+            return lines.Where(line => !string.IsNullOrWhiteSpace(line)).ToList();
+
+        if (string.IsNullOrWhiteSpace(fallback))
+            return [];
+
+        return fallback.Split(["\r\n", "\n", "\r", " | "], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
     }
 
     private static void SignatureBox(IContainer container, string title)

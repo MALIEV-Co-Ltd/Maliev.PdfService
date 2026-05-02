@@ -53,14 +53,23 @@ public class QuotationData
     /// <summary>Customer phone number.</summary>
     public string? CustomerPhone { get; set; }
 
+    /// <summary>Preformatted customer identity lines shown in the QUOTE TO section.</summary>
+    public List<string> CustomerDisplayLines { get; set; } = [];
+
     /// <summary>Customer address.</summary>
     public string? CustomerAddress { get; set; }
 
     /// <summary>Customer billing address.</summary>
     public string? BillingAddress { get; set; }
 
+    /// <summary>Preformatted billing address lines.</summary>
+    public List<string> BillingAddressLines { get; set; } = [];
+
     /// <summary>Customer shipping address.</summary>
     public string? ShippingAddress { get; set; }
+
+    /// <summary>Preformatted shipping address lines.</summary>
+    public List<string> ShippingAddressLines { get; set; } = [];
 
     /// <summary>Contact person name at the customer.</summary>
     public string? ContactPerson { get; set; }
@@ -116,8 +125,14 @@ public class QuotationItemData
     /// <summary>Material name or product identifier.</summary>
     public string MaterialName { get; set; } = string.Empty;
 
+    /// <summary>Part file name or customer-facing part name.</summary>
+    public string? PartName { get; set; }
+
     /// <summary>Manufacturing process (e.g., FDM, SLA, CNC Milling).</summary>
     public string? ManufacturingProcess { get; set; }
+
+    /// <summary>Individual detail rows shown under the part name.</summary>
+    public List<string> DetailLines { get; set; } = [];
 
     /// <summary>Quantity.</summary>
     public decimal Quantity { get; set; }
