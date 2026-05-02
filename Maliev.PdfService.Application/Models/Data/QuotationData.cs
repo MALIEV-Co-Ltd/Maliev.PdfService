@@ -50,6 +50,9 @@ public class QuotationData
     /// <summary>Customer tax identification number (or national ID for individuals).</summary>
     public string? CustomerTaxId { get; set; }
 
+    /// <summary>Customer phone number.</summary>
+    public string? CustomerPhone { get; set; }
+
     /// <summary>Customer address.</summary>
     public string? CustomerAddress { get; set; }
 

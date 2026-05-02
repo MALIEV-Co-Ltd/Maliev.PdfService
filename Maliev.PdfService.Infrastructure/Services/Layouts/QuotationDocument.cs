@@ -86,6 +86,8 @@ public class QuotationDocument : IDocument
                         }
                         if (!string.IsNullOrEmpty(Data.ContactPerson))
                             col.Item().Text($"Attn: {Data.ContactPerson}").FontSize(8);
+                        if (!string.IsNullOrEmpty(Data.CustomerPhone))
+                            col.Item().Text($"Tel: {Data.CustomerPhone}").FontSize(8);
 
                         var billingAddress = Data.BillingAddress ?? Data.CustomerAddress;
                         if (!string.IsNullOrEmpty(billingAddress))
@@ -252,23 +254,12 @@ public class QuotationDocument : IDocument
                     });
                 }
 
-                content.Item().ExtendVertical().AlignBottom().PaddingBottom(10).Row(row =>
+                content.Item().ExtendVertical();
+                content.Item().PaddingBottom(10).ShowEntire().Row(row =>
                 {
-                    row.RelativeItem().Column(col =>
-                    {
-                        col.Item().Text("ผู้เสนอราคา / Quoted by").FontSize(9).FontColor(Colors.Grey.Darken1);
-                        col.Item().PaddingTop(60).LineHorizontal(1).LineColor(Colors.Grey.Medium);
-                        col.Item().PaddingTop(10).AlignCenter().Text("Signature & Date").FontSize(8);
-                    });
-
+                    row.RelativeItem().Element(container => SignatureBox(container, "ผู้เสนอราคา / Quoted by"));
                     row.ConstantItem(40);
-
-                    row.RelativeItem().Column(col =>
-                    {
-                        col.Item().Text("ผู้อนุมัติ / Approved by").FontSize(9).FontColor(Colors.Grey.Darken1);
-                        col.Item().PaddingTop(60).LineHorizontal(1).LineColor(Colors.Grey.Medium);
-                        col.Item().PaddingTop(10).AlignCenter().Text("Signature & Date").FontSize(8);
-                    });
+                    row.RelativeItem().Element(container => SignatureBox(container, "ผู้อนุมัติ / Approved by"));
                 });
             });
 
@@ -311,6 +302,16 @@ public class QuotationDocument : IDocument
             .Background(backgroundColor)
             .Padding(5)
             .DefaultTextStyle(x => x.FontSize(9));
+    }
+
+    private static void SignatureBox(IContainer container, string title)
+    {
+        container.Column(col =>
+        {
+            col.Item().Text(title).FontSize(9).FontColor(Colors.Grey.Darken1);
+            col.Item().PaddingTop(60).LineHorizontal(1).LineColor(Colors.Grey.Medium);
+            col.Item().PaddingTop(10).AlignCenter().Text("Signature & Date").FontSize(8);
+        });
     }
 
     private static string ReadResourceText(string fileName)
