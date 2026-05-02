@@ -68,11 +68,15 @@ public class UploadServiceClient : IUploadServiceClient
             throw new InvalidOperationException($"Failed to complete UploadService upload: {completeResponse.StatusCode}");
         }
 
-        var result = await completeResponse.Content.ReadFromJsonAsync<UploadResponse>(cancellationToken: cancellationToken);
-        return result?.StoragePath ?? throw new InvalidOperationException("UploadService returned empty storage path");
+        var result = await completeResponse.Content.ReadFromJsonAsync<UploadResponse>(cancellationToken: cancellationToken)
+            ?? throw new InvalidOperationException("UploadService returned empty upload response");
+
+        return result.SignedUrl ?? result.StoragePath ?? throw new InvalidOperationException("UploadService returned empty signed URL and storage path");
     }
 
-    private sealed record UploadResponse([property: System.Text.Json.Serialization.JsonPropertyName("storagePath")] string StoragePath);
+    private sealed record UploadResponse(
+        [property: System.Text.Json.Serialization.JsonPropertyName("storagePath")] string? StoragePath,
+        [property: System.Text.Json.Serialization.JsonPropertyName("signedUrl")] string? SignedUrl);
 
     private sealed record InitiateResumableUploadRequest(
         string Path,

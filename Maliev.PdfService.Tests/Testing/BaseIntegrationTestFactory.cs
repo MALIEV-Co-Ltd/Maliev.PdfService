@@ -50,6 +50,9 @@ public class BaseIntegrationTestFactory<TProgram, TDbContext> : WebApplicationFa
     /// </summary>
     protected virtual string DbConnectionStringName => typeof(TDbContext).Name;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BaseIntegrationTestFactory{TProgram, TDbContext}"/> class.
+    /// </summary>
     public BaseIntegrationTestFactory()
     {
         _testRsa = RSA.Create(2048);
@@ -58,6 +61,10 @@ public class BaseIntegrationTestFactory<TProgram, TDbContext> : WebApplicationFa
         Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Testing");
     }
 
+    /// <summary>
+    /// Starts shared infrastructure containers and configures environment variables for integration tests.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous initialization operation.</returns>
     public async Task InitializeAsync()
     {
         await _initLock.WaitAsync();
@@ -139,6 +146,10 @@ public class BaseIntegrationTestFactory<TProgram, TDbContext> : WebApplicationFa
         Environment.SetEnvironmentVariable("IAM__RegistrationDelaySeconds", "0");
     }
 
+    /// <summary>
+    /// Disposes the test host and clears test-specific environment variables.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous disposal operation.</returns>
     public new async Task DisposeAsync()
     {
         await base.DisposeAsync(); // Stop the Host
@@ -151,6 +162,7 @@ public class BaseIntegrationTestFactory<TProgram, TDbContext> : WebApplicationFa
     }
 
 
+    /// <inheritdoc />
     protected override IHost CreateHost(IHostBuilder builder)
     {
         // Ensure containers are started before creating host
@@ -176,6 +188,7 @@ public class BaseIntegrationTestFactory<TProgram, TDbContext> : WebApplicationFa
         return host;
     }
 
+    /// <inheritdoc />
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureLogging(logging =>

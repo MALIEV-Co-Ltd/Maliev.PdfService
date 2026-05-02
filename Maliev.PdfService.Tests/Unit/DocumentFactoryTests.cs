@@ -6,10 +6,16 @@ using Xunit;
 
 namespace Maliev.PdfService.Tests.Unit;
 
+/// <summary>
+/// Unit tests for mapping PDF document types and data into QuestPDF document instances.
+/// </summary>
 public class DocumentFactoryTests
 {
     private readonly DocumentFactory _factory = new();
 
+    /// <summary>
+    /// Verifies that unsupported document types throw an argument-out-of-range exception.
+    /// </summary>
     [Fact]
     public void CreateDocument_Throws_OnUnsupportedType()
     {
@@ -17,6 +23,9 @@ public class DocumentFactoryTests
         Assert.Throws<ArgumentOutOfRangeException>(() => _factory.CreateDocument((DocumentType)999, new { }));
     }
 
+    /// <summary>
+    /// Verifies that invoice data is mapped into an invoice document.
+    /// </summary>
     [Fact]
     public void CreateDocument_MapsObjectToInvoiceData()
     {
@@ -35,6 +44,9 @@ public class DocumentFactoryTests
         Assert.Equal("MAP-001", invoiceDoc.Data.InvoiceNumber);
     }
 
+    /// <summary>
+    /// Verifies that quotation document types create quotation documents.
+    /// </summary>
     [Fact]
     public void CreateDocument_Quotation_ReturnsQuotationDocument()
     {
@@ -48,6 +60,9 @@ public class DocumentFactoryTests
         Assert.NotNull(doc);
     }
 
+    /// <summary>
+    /// Verifies that receipt document types create receipt documents.
+    /// </summary>
     [Fact]
     public void CreateDocument_Receipt_ReturnsReceiptDocument()
     {
@@ -61,6 +76,9 @@ public class DocumentFactoryTests
         Assert.NotNull(doc);
     }
 
+    /// <summary>
+    /// Verifies that report document types create financial report documents.
+    /// </summary>
     [Fact]
     public void CreateDocument_Report_ReturnsReportDocument()
     {
@@ -74,6 +92,9 @@ public class DocumentFactoryTests
         Assert.NotNull(doc);
     }
 
+    /// <summary>
+    /// Verifies that JSON invoice data can be mapped into a PDF document.
+    /// </summary>
     [Fact]
     public void MapToInvoiceData_JsonElement_ReturnsData()
     {
@@ -88,6 +109,9 @@ public class DocumentFactoryTests
         Assert.NotNull(doc);
     }
 
+    /// <summary>
+    /// Verifies that invalid invoice input data throws an invalid operation exception.
+    /// </summary>
     [Fact]
     public void MapToInvoiceData_InvalidType_ThrowsException()
     {

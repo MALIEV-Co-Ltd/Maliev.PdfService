@@ -5,6 +5,9 @@ using Xunit;
 
 namespace Maliev.PdfService.Tests.Unit;
 
+/// <summary>
+/// Unit tests that validate QuestPDF layout documents can render PDF bytes.
+/// </summary>
 public class LayoutTests
 {
     static LayoutTests()
@@ -12,6 +15,9 @@ public class LayoutTests
         QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
     }
 
+    /// <summary>
+    /// Verifies that invoice layout generation succeeds when the invoice has no line items.
+    /// </summary>
     [Fact]
     public void InvoiceDocument_GeneratesPdf_WithEmptyItems()
     {
@@ -31,6 +37,9 @@ public class LayoutTests
         Assert.NotEmpty(pdf);
     }
 
+    /// <summary>
+    /// Verifies that invoice layout generation succeeds when the invoice has many line items.
+    /// </summary>
     [Fact]
     public void InvoiceDocument_GeneratesPdf_WithManyItems()
     {
@@ -56,6 +65,9 @@ public class LayoutTests
         Assert.NotEmpty(pdf);
     }
 
+    /// <summary>
+    /// Verifies that quotation layout generation produces PDF bytes.
+    /// </summary>
     [Fact]
     public void QuotationDocument_GeneratesPdf()
     {
@@ -70,6 +82,9 @@ public class LayoutTests
         Assert.NotEmpty(pdf);
     }
 
+    /// <summary>
+    /// Verifies that receipt layout generation produces PDF bytes.
+    /// </summary>
     [Fact]
     public void ReceiptDocument_GeneratesPdf()
     {
@@ -84,6 +99,9 @@ public class LayoutTests
         Assert.NotEmpty(pdf);
     }
 
+    /// <summary>
+    /// Verifies that financial report layout generation produces PDF bytes.
+    /// </summary>
     [Fact]
     public void FinancialReportDocument_GeneratesPdf()
     {

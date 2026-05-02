@@ -17,15 +17,26 @@ using Microsoft.Extensions.Logging;
 
 namespace Maliev.PdfService.Api.Tests.Integration;
 
+/// <summary>
+/// Integration tests for PDF-related MassTransit consumers and their persistence side effects.
+/// </summary>
 public class PdfConsumerTests : IClassFixture<PdfServiceTestFactory>
 {
     private readonly PdfServiceTestFactory _factory;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PdfConsumerTests"/> class.
+    /// </summary>
+    /// <param name="factory">The PDF service test factory that provides configured dependencies.</param>
     public PdfConsumerTests(PdfServiceTestFactory factory)
     {
         _factory = factory;
     }
 
+    /// <summary>
+    /// Verifies that a PDF generation request is generated, uploaded, and marked complete.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task Consume_PdfGenerationRequestedEvent_ShouldGenerateAndUpload()
     {
@@ -87,6 +98,10 @@ public class PdfConsumerTests : IClassFixture<PdfServiceTestFactory>
         Assert.NotNull(updatedLog.StorageUrl);
     }
 
+    /// <summary>
+    /// Verifies that a file deletion event clears matching PDF storage URLs.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task Consume_FileDeletedEvent_ShouldClearStorageUrl()
     {
@@ -143,6 +158,10 @@ public class PdfConsumerTests : IClassFixture<PdfServiceTestFactory>
         Assert.Null(updatedLog!.StorageUrl);
     }
 
+    /// <summary>
+    /// Verifies that a receipt PDF request is generated, uploaded, and logged as complete.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task Consume_ReceiptPdfRequestedEvent_ShouldGenerateAndUpload()
     {

@@ -12,8 +12,12 @@ namespace Maliev.PdfService.Tests.Fixtures;
 /// </summary>
 public class PdfServiceTestFactory : BaseIntegrationTestFactory<PdfProgram, PdfDbContext>
 {
+    /// <summary>
+    /// Mock upload service client used to isolate PDF integration tests from the UploadService.
+    /// </summary>
     public Mock<IUploadServiceClient> UploadServiceMock { get; } = new();
 
+    /// <inheritdoc />
     protected override void ConfigureAdditionalServices(IServiceCollection services)
     {
         base.ConfigureAdditionalServices(services);

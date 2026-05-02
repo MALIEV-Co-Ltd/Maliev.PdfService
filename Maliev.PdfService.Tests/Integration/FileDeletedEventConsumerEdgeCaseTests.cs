@@ -12,15 +12,26 @@ using Xunit;
 
 namespace Maliev.PdfService.Tests.Integration;
 
+/// <summary>
+/// Integration tests for file deletion consumer edge cases.
+/// </summary>
 public class FileDeletedEventConsumerEdgeCaseTests : IClassFixture<PdfServiceTestFactory>
 {
     private readonly PdfServiceTestFactory _factory;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FileDeletedEventConsumerEdgeCaseTests"/> class.
+    /// </summary>
+    /// <param name="factory">The PDF service test factory.</param>
     public FileDeletedEventConsumerEdgeCaseTests(PdfServiceTestFactory factory)
     {
         _factory = factory;
     }
 
+    /// <summary>
+    /// Verifies that deleting an unrelated file does not fail when no generation requests match.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task Consume_FileDeletedEvent_NoMatchingRequests_DoesNotThrow()
     {
@@ -58,6 +69,10 @@ public class FileDeletedEventConsumerEdgeCaseTests : IClassFixture<PdfServiceTes
         await consumer.Consume(mockContext.Object);
     }
 
+    /// <summary>
+    /// Verifies that all matching generation requests are updated for a shared deleted file identifier.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task Consume_FileDeletedEvent_MultipleMatchingRequests_UpdatesAll()
     {
@@ -128,6 +143,10 @@ public class FileDeletedEventConsumerEdgeCaseTests : IClassFixture<PdfServiceTes
         Assert.Null(updatedLog2!.StorageUrl);
     }
 
+    /// <summary>
+    /// Verifies that deletion matching works when the event identifies the storage path.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task Consume_FileDeletedEvent_MatchesByStoragePath()
     {

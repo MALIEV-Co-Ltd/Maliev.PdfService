@@ -14,15 +14,26 @@ using Xunit;
 
 namespace Maliev.PdfService.Tests.Integration;
 
+/// <summary>
+/// Integration tests for invoice-created PDF consumer behavior.
+/// </summary>
 public class InvoiceServiceClientConsumerTests : IClassFixture<PdfServiceTestFactory>
 {
     private readonly PdfServiceTestFactory _factory;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="InvoiceServiceClientConsumerTests"/> class.
+    /// </summary>
+    /// <param name="factory">The PDF service test factory.</param>
     public InvoiceServiceClientConsumerTests(PdfServiceTestFactory factory)
     {
         _factory = factory;
     }
 
+    /// <summary>
+    /// Verifies that an invoice-created event generates and uploads a PDF.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task Consume_InvoiceCreatedEvent_GeneratesPdfAndUploads()
     {

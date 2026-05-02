@@ -14,15 +14,26 @@ using Xunit;
 
 namespace Maliev.PdfService.Tests.Integration;
 
+/// <summary>
+/// Integration tests for failure handling in receipt PDF request processing.
+/// </summary>
 public class ReceiptPdfRequestedConsumerFailureTests : IClassFixture<PdfServiceTestFactory>
 {
     private readonly PdfServiceTestFactory _factory;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ReceiptPdfRequestedConsumerFailureTests"/> class.
+    /// </summary>
+    /// <param name="factory">The PDF service test factory.</param>
     public ReceiptPdfRequestedConsumerFailureTests(PdfServiceTestFactory factory)
     {
         _factory = factory;
     }
 
+    /// <summary>
+    /// Verifies that receipt PDF generator failures are persisted as failed generation requests.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task Consume_ReceiptPdfRequestedEvent_GeneratorFails_PublishesFailedEvent()
     {
@@ -73,6 +84,10 @@ public class ReceiptPdfRequestedConsumerFailureTests : IClassFixture<PdfServiceT
         Assert.Equal("Receipt PDF generation failed", log.ErrorMessage);
     }
 
+    /// <summary>
+    /// Verifies that receipt PDF upload failures are persisted as failed generation requests.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task Consume_ReceiptPdfRequestedEvent_UploadFails_PublishesFailedEvent()
     {

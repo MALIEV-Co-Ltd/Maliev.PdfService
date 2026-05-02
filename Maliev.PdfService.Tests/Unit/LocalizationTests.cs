@@ -5,6 +5,9 @@ using Xunit;
 
 namespace Maliev.PdfService.Tests.Unit;
 
+/// <summary>
+/// Unit tests for localized PDF layout input handling.
+/// </summary>
 public class LocalizationTests
 {
     static LocalizationTests()
@@ -12,6 +15,9 @@ public class LocalizationTests
         QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
     }
 
+    /// <summary>
+    /// Verifies that invoice documents can be created with localized item descriptions.
+    /// </summary>
     [Fact]
     public void InvoiceDocument_CanBeCreated()
     {

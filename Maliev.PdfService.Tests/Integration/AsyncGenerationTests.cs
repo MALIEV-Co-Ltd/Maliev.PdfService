@@ -9,15 +9,26 @@ using Maliev.PdfService.Domain.Entities;
 
 namespace Maliev.PdfService.Tests.Integration;
 
+/// <summary>
+/// Integration tests for asynchronous PDF generation endpoints.
+/// </summary>
 public class AsyncGenerationTests : IClassFixture<PdfServiceTestFactory>
 {
     private readonly PdfServiceTestFactory _factory;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AsyncGenerationTests"/> class.
+    /// </summary>
+    /// <param name="factory">The PDF service test factory.</param>
     public AsyncGenerationTests(PdfServiceTestFactory factory)
     {
         _factory = factory;
     }
 
+    /// <summary>
+    /// Verifies that asynchronous generation accepts the request and returns a request identifier.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task GenerateAsync_ReturnsAcceptedWithRequestId()
     {

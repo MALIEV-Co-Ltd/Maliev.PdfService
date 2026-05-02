@@ -7,15 +7,26 @@ using Xunit;
 
 namespace Maliev.PdfService.Tests.Integration;
 
+/// <summary>
+/// Integration tests for PDF service message consumers registered with MassTransit.
+/// </summary>
 public class ConsumerTests : IClassFixture<PdfServiceTestFactory>
 {
     private readonly PdfServiceTestFactory _factory;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ConsumerTests"/> class.
+    /// </summary>
+    /// <param name="factory">The PDF service test factory.</param>
     public ConsumerTests(PdfServiceTestFactory factory)
     {
         _factory = factory;
     }
 
+    /// <summary>
+    /// Verifies that publishing an invoice-created event reaches the configured bus.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task InvoiceFinalizedConsumer_ConsumesMessage()
     {

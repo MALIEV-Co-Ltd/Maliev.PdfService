@@ -9,6 +9,9 @@ using Xunit;
 
 namespace Maliev.PdfService.Tests.Unit;
 
+/// <summary>
+/// Unit tests for PDF document generation behavior.
+/// </summary>
 public class PdfGeneratorTests
 {
     static PdfGeneratorTests()
@@ -20,11 +23,18 @@ public class PdfGeneratorTests
     private readonly Mock<IWebHostEnvironment> _envMock = new();
     private readonly PdfGenerator _generator;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PdfGeneratorTests"/> class.
+    /// </summary>
     public PdfGeneratorTests()
     {
         _generator = new PdfGenerator(_documentFactoryMock.Object, _envMock.Object);
     }
 
+    /// <summary>
+    /// Verifies that PDF generation returns non-empty bytes for a valid production request.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task GeneratePdfAsync_ReturnsPdfBytes()
     {
@@ -43,6 +53,10 @@ public class PdfGeneratorTests
         Assert.NotEmpty(result);
     }
 
+    /// <summary>
+    /// Verifies that PDF generation completes successfully when the host environment is development.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task GeneratePdfAsync_HandlesDevelopmentEnvironment()
     {

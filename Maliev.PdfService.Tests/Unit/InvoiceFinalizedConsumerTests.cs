@@ -13,6 +13,9 @@ using Xunit;
 
 namespace Maliev.PdfService.Tests.Unit;
 
+/// <summary>
+/// Unit tests for invoice finalized consumer PDF generation behavior.
+/// </summary>
 public class InvoiceFinalizedConsumerTests : IDisposable
 {
     private readonly Mock<IPdfGenerator> _pdfGeneratorMock = new();
@@ -22,6 +25,9 @@ public class InvoiceFinalizedConsumerTests : IDisposable
     private readonly SqliteConnection _connection;
     private readonly PdfDbContext _dbContext;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="InvoiceFinalizedConsumerTests"/> class.
+    /// </summary>
     public InvoiceFinalizedConsumerTests()
     {
         _connection = new SqliteConnection("DataSource=:memory:");
@@ -38,6 +44,10 @@ public class InvoiceFinalizedConsumerTests : IDisposable
         _consumer = new InvoiceFinalizedConsumer(_pdfGeneratorMock.Object, _uploadServiceMock.Object, dbContext, _loggerMock.Object, invoiceClientMock.Object);
     }
 
+    /// <summary>
+    /// Verifies that invoice consumption calls PDF generation and upload services.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task Consume_CallsGeneratorAndUpload()
     {
@@ -65,6 +75,10 @@ public class InvoiceFinalizedConsumerTests : IDisposable
         _uploadServiceMock.Verify(x => x.UploadFileAsync(It.IsAny<string>(), It.IsAny<byte[]>(), "application/pdf", It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>
+    /// Verifies that PDF generator failures are propagated by the invoice consumer.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task Consume_Throws_WhenGeneratorFails()
     {

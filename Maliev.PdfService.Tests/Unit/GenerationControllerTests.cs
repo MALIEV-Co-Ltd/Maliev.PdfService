@@ -14,6 +14,9 @@ using Testcontainers.PostgreSql;
 
 namespace Maliev.PdfService.Tests.Unit;
 
+/// <summary>
+/// Unit tests for PDF generation controller behavior and persistence.
+/// </summary>
 public class GenerationControllerTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _dbContainer = 
@@ -29,6 +32,10 @@ public class GenerationControllerTests : IAsyncLifetime
     private PdfDbContext _dbContext = null!;
     private GenerationController _controller = null!;
 
+    /// <summary>
+    /// Starts the PostgreSQL test container and creates a controller under test.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous initialization operation.</returns>
     public async Task InitializeAsync()
     {
         await _dbContainer.StartAsync();
@@ -48,11 +55,19 @@ public class GenerationControllerTests : IAsyncLifetime
             _loggerMock.Object);
     }
 
+    /// <summary>
+    /// Disposes the PostgreSQL test container after the test run.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous disposal operation.</returns>
     public async Task DisposeAsync()
     {
         await _dbContainer.DisposeAsync();
     }
 
+    /// <summary>
+    /// Verifies that synchronous generation returns OK and stores a completed request.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task Generate_ReturnsOk_AndSavesToDb()
     {
@@ -83,6 +98,10 @@ public class GenerationControllerTests : IAsyncLifetime
         Assert.Equal(GenerationStatus.Completed, saved.Status);
     }
 
+    /// <summary>
+    /// Verifies that asynchronous generation returns Accepted and stores a pending request.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task GenerateAsync_ReturnsAccepted_AndSavesToDb()
     {
@@ -107,6 +126,10 @@ public class GenerationControllerTests : IAsyncLifetime
         Assert.Equal(GenerationStatus.Pending, saved.Status);
     }
 
+    /// <summary>
+    /// Verifies that synchronous generation failures return an internal server error and store failure details.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task Generate_ReturnsInternalServerError_OnException()
     {

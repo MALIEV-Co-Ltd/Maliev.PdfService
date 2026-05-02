@@ -13,15 +13,26 @@ using Xunit;
 
 namespace Maliev.PdfService.Tests.Integration;
 
+/// <summary>
+/// Integration tests for failure handling in the PDF generation request consumer.
+/// </summary>
 public class PdfGenerationRequestedConsumerFailureTests : IClassFixture<PdfServiceTestFactory>
 {
     private readonly PdfServiceTestFactory _factory;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PdfGenerationRequestedConsumerFailureTests"/> class.
+    /// </summary>
+    /// <param name="factory">The PDF service test factory.</param>
     public PdfGenerationRequestedConsumerFailureTests(PdfServiceTestFactory factory)
     {
         _factory = factory;
     }
 
+    /// <summary>
+    /// Verifies that a missing generation request is ignored without throwing.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task Consume_PdfGenerationRequestedEvent_RequestNotFound_DoesNotThrow()
     {
@@ -60,6 +71,10 @@ public class PdfGenerationRequestedConsumerFailureTests : IClassFixture<PdfServi
         await consumer.Consume(mockContext.Object);
     }
 
+    /// <summary>
+    /// Verifies that an already completed generation request is skipped.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task Consume_PdfGenerationRequestedEvent_AlreadyProcessed_Skips()
     {
@@ -115,6 +130,10 @@ public class PdfGenerationRequestedConsumerFailureTests : IClassFixture<PdfServi
         Assert.Equal(GenerationStatus.Completed, updatedLog!.Status);
     }
 
+    /// <summary>
+    /// Verifies that generator failures mark the request as failed.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task Consume_PdfGenerationRequestedEvent_GeneratorFails_PublishesFailedEvent()
     {
@@ -173,6 +192,10 @@ public class PdfGenerationRequestedConsumerFailureTests : IClassFixture<PdfServi
         Assert.Equal("PDF generation failed", updatedLog.ErrorMessage);
     }
 
+    /// <summary>
+    /// Verifies that missing generation data records a failed request.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task Consume_PdfGenerationRequestedEvent_MissingDataJson_Throws()
     {
