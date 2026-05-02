@@ -7,14 +7,14 @@ using Xunit;
 namespace Maliev.PdfService.Tests.Unit;
 
 /// <summary>
-/// Unit tests for mapping PDF document types and data into QuestPDF document instances.
+/// Unit tests for DocumentFactory.
 /// </summary>
 public class DocumentFactoryTests
 {
     private readonly DocumentFactory _factory = new();
 
     /// <summary>
-    /// Verifies that unsupported document types throw an argument-out-of-range exception.
+    /// Tests that CreateDocument throws on unsupported type.
     /// </summary>
     [Fact]
     public void CreateDocument_Throws_OnUnsupportedType()
@@ -24,7 +24,7 @@ public class DocumentFactoryTests
     }
 
     /// <summary>
-    /// Verifies that invoice data is mapped into an invoice document.
+    /// Tests that CreateDocument maps object to InvoiceData.
     /// </summary>
     [Fact]
     public void CreateDocument_MapsObjectToInvoiceData()
@@ -33,7 +33,7 @@ public class DocumentFactoryTests
         var data = new InvoiceData
         {
             InvoiceNumber = "MAP-001",
-            Items = new List<InvoiceItemData> { new InvoiceItemData { Index = 1, Description = "D", Quantity = 1.0, TotalPrice = 50.0 } }
+            Items = new List<InvoiceItemData> { new InvoiceItemData { Index = 1, Description = "D", Quantity = 1m, UnitPrice = 50m, LineSubtotal = 50m, LineTotal = 50m } }
         };
 
         // Act
@@ -45,7 +45,7 @@ public class DocumentFactoryTests
     }
 
     /// <summary>
-    /// Verifies that quotation document types create quotation documents.
+    /// Tests that CreateDocument returns QuotationDocument.
     /// </summary>
     [Fact]
     public void CreateDocument_Quotation_ReturnsQuotationDocument()
@@ -61,13 +61,13 @@ public class DocumentFactoryTests
     }
 
     /// <summary>
-    /// Verifies that receipt document types create receipt documents.
+    /// Tests that CreateDocument returns ReceiptDocument.
     /// </summary>
     [Fact]
     public void CreateDocument_Receipt_ReturnsReceiptDocument()
     {
         // Arrange
-        var data = new { ReceiptNumber = "RCP-1" };
+        var data = new ReceiptData { ReceiptNumber = "RCP-1" };
 
         // Act
         var doc = _factory.CreateDocument(DocumentType.Receipt, data);
@@ -77,13 +77,13 @@ public class DocumentFactoryTests
     }
 
     /// <summary>
-    /// Verifies that report document types create financial report documents.
+    /// Tests that CreateDocument returns ReportDocument.
     /// </summary>
     [Fact]
     public void CreateDocument_Report_ReturnsReportDocument()
     {
         // Arrange
-        var data = new { ReportTitle = "Report" };
+        var data = new FinancialReportData { ReportTitle = "Report" };
 
         // Act
         var doc = _factory.CreateDocument(DocumentType.Report, data);
@@ -93,7 +93,7 @@ public class DocumentFactoryTests
     }
 
     /// <summary>
-    /// Verifies that JSON invoice data can be mapped into a PDF document.
+    /// Tests that MapToInvoiceData returns data from JsonElement.
     /// </summary>
     [Fact]
     public void MapToInvoiceData_JsonElement_ReturnsData()
@@ -110,7 +110,7 @@ public class DocumentFactoryTests
     }
 
     /// <summary>
-    /// Verifies that invalid invoice input data throws an invalid operation exception.
+    /// Tests that MapToInvoiceData throws exception on invalid type.
     /// </summary>
     [Fact]
     public void MapToInvoiceData_InvalidType_ThrowsException()

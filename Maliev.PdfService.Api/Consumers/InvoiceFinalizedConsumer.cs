@@ -61,13 +61,24 @@ public class InvoiceFinalizedConsumer : IConsumer<InvoiceCreatedEvent>
             var invoiceData = new InvoiceData
             {
                 InvoiceNumber = payload.InvoiceNumber,
-                Currency = payload.Currency ?? string.Empty,
+                DocumentType = "TaxInvoice",
+                IssueDate = invoiceDto?.IssueDate ?? DateTime.UtcNow,
+                DueDate = invoiceDto?.DueDate,
+                CustomerName = invoiceDto?.CustomerName ?? string.Empty,
+                Currency = payload.Currency ?? "THB",
+                Subtotal = Convert.ToDecimal(invoiceDto?.SubTotalAmount ?? 0),
+                TaxAmount = Convert.ToDecimal(invoiceDto?.TaxAmount ?? 0),
+                GrandTotal = Convert.ToDecimal(invoiceDto?.TotalAmount ?? 0),
                 Items = invoiceDto?.Items?.Select((item, idx) => new InvoiceItemData
                 {
                     Index = idx + 1,
                     Description = item.Description,
-                    Quantity = (double)item.Quantity,
-                    TotalPrice = (double)item.TotalAmount
+                    Quantity = Convert.ToDecimal(item.Quantity),
+                    Unit = "pcs",
+                    UnitPrice = Convert.ToDecimal(item.UnitPrice),
+                    LineSubtotal = Convert.ToDecimal(item.TotalAmount),
+                    LineTaxAmount = 0,
+                    LineTotal = Convert.ToDecimal(item.TotalAmount)
                 }).ToList() ?? new List<InvoiceItemData>()
             };
 

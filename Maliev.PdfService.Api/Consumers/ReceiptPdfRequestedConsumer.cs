@@ -1,6 +1,7 @@
 using Maliev.MessagingContracts;
 using Maliev.MessagingContracts.Contracts.Pdf;
 using Maliev.MessagingContracts.Contracts.Receipts;
+using Maliev.PdfService.Api.Models.Data;
 using Maliev.PdfService.Api.Services;
 using Maliev.PdfService.Infrastructure.Data;
 using Maliev.PdfService.Domain.Entities;
@@ -58,7 +59,30 @@ public class ReceiptPdfRequestedConsumer : IConsumer<ReceiptPdfRequestedEvent>
 
         try
         {
-            var pdfBytes = await _pdfGenerator.GeneratePdfAsync(DocumentType.Receipt, payload, log.TemplateCode);
+            var receiptData = new ReceiptData
+            {
+                ReceiptNumber = payload.ReceiptNumber,
+                ReceiptDate = payload.FinancialDetails.IssueDate.UtcDateTime,
+                CustomerName = payload.CustomerDetails.Name,
+                CustomerType = "Corporate",
+                CustomerTaxId = payload.CustomerDetails.TaxId,
+                CustomerAddress = payload.CustomerDetails.Address,
+                PaymentMethod = payload.FinancialDetails.PaymentMethod,
+                Items = payload.LineItems.Select(item => new ReceiptItemData
+                {
+                    Index = item.LineNumber,
+                    Description = item.Description,
+                    Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice,
+                    TotalPrice = item.LineTotal
+                }).ToList(),
+                Subtotal = payload.FinancialDetails.Subtotal,
+                TaxAmount = payload.FinancialDetails.TaxAmount,
+                TotalAmount = payload.FinancialDetails.TotalAmount,
+                Currency = payload.FinancialDetails.Currency
+            };
+
+            var pdfBytes = await _pdfGenerator.GeneratePdfAsync(DocumentType.Receipt, receiptData, log.TemplateCode);
 
             var fileName = $"Receipt_{payload.ReceiptNumber}_{Guid.NewGuid()}.pdf";
             var storagePath = _pdfGenerator.GetStoragePath(DocumentType.Receipt, payload.ReceiptId.ToString(), fileName);

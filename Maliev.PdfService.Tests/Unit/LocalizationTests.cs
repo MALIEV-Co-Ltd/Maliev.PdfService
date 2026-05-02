@@ -6,7 +6,7 @@ using Xunit;
 namespace Maliev.PdfService.Tests.Unit;
 
 /// <summary>
-/// Unit tests for localized PDF layout input handling.
+/// Unit tests for localization in PDF documents.
 /// </summary>
 public class LocalizationTests
 {
@@ -16,7 +16,7 @@ public class LocalizationTests
     }
 
     /// <summary>
-    /// Verifies that invoice documents can be created with localized item descriptions.
+    /// Tests that InvoiceDocument can be created with localized content.
     /// </summary>
     [Fact]
     public void InvoiceDocument_CanBeCreated()
@@ -27,7 +27,7 @@ public class LocalizationTests
             InvoiceNumber = "INV-001",
             Items = new List<InvoiceItemData>
             {
-                new InvoiceItemData { Index = 1, Description = "Test Item (ภาษาไทย)", Quantity = 1.0, TotalPrice = 100.0 }
+                new InvoiceItemData { Index = 1, Description = "Test Item (ภาษาไทย)", Quantity = 1m, UnitPrice = 100m, LineSubtotal = 100m, LineTotal = 100m }
             }
         };
 

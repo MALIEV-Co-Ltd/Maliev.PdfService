@@ -1,136 +1,431 @@
 using Maliev.PdfService.Api.Models.Data;
 using Maliev.PdfService.Api.Services.Layouts;
+using Maliev.PdfService.Tests.TestData;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
+using Xunit;
 
 namespace Maliev.PdfService.Tests.Integration;
 
 /// <summary>
-/// Integration tests that generate reviewable PDF preview files for each supported template.
+/// Preview tests that generate real PDFs for visual inspection.
 /// </summary>
-public class PdfPreviewTests
+[Trait("Category", "PdfPreview")]
+public class PdfPreviewTests : IDisposable
 {
-    private static readonly string OutputDirectory = Path.Combine(FindRepositoryRoot(), "artifacts", "pdf-previews");
+    private static readonly string OutputDirectory;
 
     static PdfPreviewTests()
     {
         QuestPDF.Settings.License = LicenseType.Community;
+        OutputDirectory = Path.Combine(FindRepositoryRoot(), "artifacts", "pdf-previews");
+
+        PrepareOutputDirectory();
     }
 
     /// <summary>
-    /// Generates preview PDF files for all supported document templates.
+    /// Initializes a new instance of the <see cref="PdfPreviewTests"/> class and ensures the preview output directory exists.
+    /// </summary>
+    public PdfPreviewTests()
+    {
+        Directory.CreateDirectory(OutputDirectory);
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+    }
+
+    // ==================== INVOICE TESTS ====================
+
+    // Standard Invoice (ใบแจ้งหนี้)
+    /// <summary>
+    /// Generates the InvoiceStandard English preview PDF for manual review.
     /// </summary>
     [Fact]
-    public void GeneratePreviewPdfs_WritesAllTemplateFiles()
+    public void InvoiceStandard_English()
+    {
+        var document = new InvoiceDocument(DocumentTestData.InvoiceStandard_English);
+        GenerateAndSave(document, "InvoiceStandard_English.pdf");
+    }
+
+    /// <summary>
+    /// Generates the InvoiceStandard Thai preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void InvoiceStandard_Thai()
+    {
+        var document = new InvoiceDocument(DocumentTestData.InvoiceStandard_Thai);
+        GenerateAndSave(document, "InvoiceStandard_Thai.pdf");
+    }
+
+    // Tax Invoice (ใบกำกับภาษี)
+    /// <summary>
+    /// Generates the Invoice English SingleItem preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void Invoice_English_SingleItem()
+    {
+        var document = new InvoiceDocument(DocumentTestData.InvoiceEnglish_SingleItem);
+        GenerateAndSave(document, "Invoice_English_SingleItem.pdf");
+    }
+
+    /// <summary>
+    /// Generates the Invoice English ManyItems preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void Invoice_English_ManyItems()
+    {
+        var document = new InvoiceDocument(DocumentTestData.InvoiceEnglish_ManyItems);
+        GenerateAndSave(document, "Invoice_English_ManyItems.pdf");
+    }
+
+    /// <summary>
+    /// Generates the Invoice Thai SingleItem preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void Invoice_Thai_SingleItem()
+    {
+        var document = new InvoiceDocument(DocumentTestData.InvoiceThai_SingleItem);
+        GenerateAndSave(document, "Invoice_Thai_SingleItem.pdf");
+    }
+
+    /// <summary>
+    /// Generates the Invoice Thai ManyItems preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void Invoice_Thai_ManyItems()
+    {
+        var document = new InvoiceDocument(DocumentTestData.InvoiceThai_ManyItems);
+        GenerateAndSave(document, "Invoice_Thai_ManyItems.pdf");
+    }
+
+    /// <summary>
+    /// Generates the Invoice Mixed SingleItem preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void Invoice_Mixed_SingleItem()
+    {
+        var document = new InvoiceDocument(DocumentTestData.InvoiceMixed_SingleItem);
+        GenerateAndSave(document, "Invoice_Mixed_SingleItem.pdf");
+    }
+
+    /// <summary>
+    /// Generates the Invoice Mixed ManyItems preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void Invoice_Mixed_ManyItems()
+    {
+        var document = new InvoiceDocument(DocumentTestData.InvoiceMixed_ManyItems);
+        GenerateAndSave(document, "Invoice_Mixed_ManyItems.pdf");
+    }
+
+    /// <summary>
+    /// Generates the Invoice Thai Individual preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void Invoice_Thai_Individual()
+    {
+        var document = new InvoiceDocument(DocumentTestData.InvoiceThai_Individual);
+        GenerateAndSave(document, "Invoice_Thai_Individual.pdf");
+    }
+
+    /// <summary>
+    /// Generates the Invoice Thai IndividualNoId preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void Invoice_Thai_IndividualNoId()
+    {
+        var document = new InvoiceDocument(DocumentTestData.InvoiceThai_IndividualNoId);
+        GenerateAndSave(document, "Invoice_Thai_IndividualNoId.pdf");
+    }
+
+    // ==================== QUOTATION TESTS ====================
+
+    /// <summary>
+    /// Generates the Quotation English SingleItem preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void Quotation_English_SingleItem()
+    {
+        var document = new QuotationDocument(DocumentTestData.QuotationEnglish_SingleItem);
+        GenerateAndSave(document, "Quotation_English_SingleItem.pdf");
+    }
+
+    /// <summary>
+    /// Generates the Quotation English ManyItems preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void Quotation_English_ManyItems()
+    {
+        var document = new QuotationDocument(DocumentTestData.QuotationEnglish_ManyItems);
+        GenerateAndSave(document, "Quotation_English_ManyItems.pdf");
+    }
+
+    /// <summary>
+    /// Generates the Quotation Thai SingleItem preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void Quotation_Thai_SingleItem()
+    {
+        var document = new QuotationDocument(DocumentTestData.QuotationThai_SingleItem);
+        GenerateAndSave(document, "Quotation_Thai_SingleItem.pdf");
+    }
+
+    /// <summary>
+    /// Generates the Quotation Thai ManyItems preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void Quotation_Thai_ManyItems()
+    {
+        var document = new QuotationDocument(DocumentTestData.QuotationThai_ManyItems);
+        GenerateAndSave(document, "Quotation_Thai_ManyItems.pdf");
+    }
+
+    /// <summary>
+    /// Generates the Quotation Mixed SingleItem preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void Quotation_Mixed_SingleItem()
+    {
+        var document = new QuotationDocument(DocumentTestData.QuotationMixed_SingleItem);
+        GenerateAndSave(document, "Quotation_Mixed_SingleItem.pdf");
+    }
+
+    /// <summary>
+    /// Generates the Quotation Mixed ManyItems preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void Quotation_Mixed_ManyItems()
+    {
+        var document = new QuotationDocument(DocumentTestData.QuotationMixed_ManyItems);
+        GenerateAndSave(document, "Quotation_Mixed_ManyItems.pdf");
+    }
+
+    // ==================== RECEIPT TESTS ====================
+
+    /// <summary>
+    /// Generates the Receipt English Cash preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void Receipt_English_Cash()
+    {
+        var document = new ReceiptDocument(DocumentTestData.ReceiptEnglish_Cash);
+        GenerateAndSave(document, "Receipt_English_Cash.pdf");
+    }
+
+    /// <summary>
+    /// Generates the Receipt English Transfer preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void Receipt_English_Transfer()
+    {
+        var document = new ReceiptDocument(DocumentTestData.ReceiptEnglish_Transfer);
+        GenerateAndSave(document, "Receipt_English_Transfer.pdf");
+    }
+
+    /// <summary>
+    /// Generates the Receipt English CreditCard preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void Receipt_English_CreditCard()
+    {
+        var document = new ReceiptDocument(DocumentTestData.ReceiptEnglish_CreditCard);
+        GenerateAndSave(document, "Receipt_English_CreditCard.pdf");
+    }
+
+    /// <summary>
+    /// Generates the Receipt Thai Cash preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void Receipt_Thai_Cash()
+    {
+        var document = new ReceiptDocument(DocumentTestData.ReceiptThai_Cash);
+        GenerateAndSave(document, "Receipt_Thai_Cash.pdf");
+    }
+
+    /// <summary>
+    /// Generates the Receipt Thai Transfer preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void Receipt_Thai_Transfer()
+    {
+        var document = new ReceiptDocument(DocumentTestData.ReceiptThai_Transfer);
+        GenerateAndSave(document, "Receipt_Thai_Transfer.pdf");
+    }
+
+    /// <summary>
+    /// Generates the Receipt Mixed Cash preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void Receipt_Mixed_Cash()
+    {
+        var document = new ReceiptDocument(DocumentTestData.ReceiptMixed_Cash);
+        GenerateAndSave(document, "Receipt_Mixed_Cash.pdf");
+    }
+
+    // ==================== DELIVERY NOTE TESTS ====================
+
+    /// <summary>
+    /// Generates the DeliveryNote English SingleItem preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void DeliveryNote_English_SingleItem()
+    {
+        var document = new DeliveryNoteDocument(DocumentTestData.DeliveryNoteEnglish_SingleItem);
+        GenerateAndSave(document, "DeliveryNote_English_SingleItem.pdf");
+    }
+
+    /// <summary>
+    /// Generates the DeliveryNote English ManyItems preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void DeliveryNote_English_ManyItems()
+    {
+        var document = new DeliveryNoteDocument(DocumentTestData.DeliveryNoteEnglish_ManyItems);
+        GenerateAndSave(document, "DeliveryNote_English_ManyItems.pdf");
+    }
+
+    /// <summary>
+    /// Generates the DeliveryNote Thai SingleItem preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void DeliveryNote_Thai_SingleItem()
+    {
+        var document = new DeliveryNoteDocument(DocumentTestData.DeliveryNoteThai_SingleItem);
+        GenerateAndSave(document, "DeliveryNote_Thai_SingleItem.pdf");
+    }
+
+    /// <summary>
+    /// Generates the DeliveryNote Thai ManyItems preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void DeliveryNote_Thai_ManyItems()
+    {
+        var document = new DeliveryNoteDocument(DocumentTestData.DeliveryNoteThai_ManyItems);
+        GenerateAndSave(document, "DeliveryNote_Thai_ManyItems.pdf");
+    }
+
+    /// <summary>
+    /// Generates the DeliveryNote Mixed SingleItem preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void DeliveryNote_Mixed_SingleItem()
+    {
+        var document = new DeliveryNoteDocument(DocumentTestData.DeliveryNoteMixed_SingleItem);
+        GenerateAndSave(document, "DeliveryNote_Mixed_SingleItem.pdf");
+    }
+
+    /// <summary>
+    /// Generates the DeliveryNote English MultiPage preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void DeliveryNote_English_MultiPage()
+    {
+        var document = new DeliveryNoteDocument(DocumentTestData.DeliveryNoteEnglish_MultiPage);
+        GenerateAndSave(document, "DeliveryNote_English_MultiPage.pdf");
+    }
+
+    // ==================== JOB TICKET TESTS ====================
+
+    /// <summary>
+    /// Generates the JobTicket FDM English preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void JobTicket_FDM_English()
+    {
+        var document = new JobTicketDocument(DocumentTestData.JobTicketFdm_English);
+        GenerateAndSave(document, "JobTicket_FDM_English.pdf");
+    }
+
+    /// <summary>
+    /// Generates the JobTicket CNC Thai preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void JobTicket_CNC_Thai()
+    {
+        var document = new JobTicketDocument(DocumentTestData.JobTicketCnc_Thai);
+        GenerateAndSave(document, "JobTicket_CNC_Thai.pdf");
+    }
+
+    /// <summary>
+    /// Generates the JobTicket SLA Mixed preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void JobTicket_SLA_Mixed()
+    {
+        var document = new JobTicketDocument(DocumentTestData.JobTicketSla_Mixed);
+        GenerateAndSave(document, "JobTicket_SLA_Mixed.pdf");
+    }
+
+    // ==================== FINANCIAL REPORT TESTS ====================
+
+    /// <summary>
+    /// Generates the FinancialReport English Simple preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void FinancialReport_English_Simple()
+    {
+        var document = new FinancialReportDocument(DocumentTestData.ReportEnglish_Simple);
+        GenerateAndSave(document, "FinancialReport_English_Simple.pdf");
+    }
+
+    /// <summary>
+    /// Generates the FinancialReport English Complex preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void FinancialReport_English_Complex()
+    {
+        var document = new FinancialReportDocument(DocumentTestData.ReportEnglish_Complex);
+        GenerateAndSave(document, "FinancialReport_English_Complex.pdf");
+    }
+
+    /// <summary>
+    /// Generates the FinancialReport Thai Simple preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void FinancialReport_Thai_Simple()
+    {
+        var document = new FinancialReportDocument(DocumentTestData.ReportThai_Simple);
+        GenerateAndSave(document, "FinancialReport_Thai_Simple.pdf");
+    }
+
+    /// <summary>
+    /// Generates the FinancialReport Thai Complex preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void FinancialReport_Thai_Complex()
+    {
+        var document = new FinancialReportDocument(DocumentTestData.ReportThai_Complex);
+        GenerateAndSave(document, "FinancialReport_Thai_Complex.pdf");
+    }
+
+    /// <summary>
+    /// Generates the FinancialReport Mixed Simple preview PDF for manual review.
+    /// </summary>
+    [Fact]
+    public void FinancialReport_Mixed_Simple()
+    {
+        var document = new FinancialReportDocument(DocumentTestData.ReportMixed_Simple);
+        GenerateAndSave(document, "FinancialReport_Mixed_Simple.pdf");
+    }
+
+    private static void GenerateAndSave(IDocument document, string fileName)
+    {
+        var bytes = document.GeneratePdf();
+        var filePath = Path.Combine(OutputDirectory, fileName);
+        File.WriteAllBytes(filePath, bytes);
+        Console.WriteLine($"Generated: {filePath}");
+    }
+
+    private static void PrepareOutputDirectory()
     {
         Directory.CreateDirectory(OutputDirectory);
 
-        foreach (var stalePdf in Directory.EnumerateFiles(OutputDirectory, "*.pdf"))
+        foreach (var file in Directory.EnumerateFiles(OutputDirectory, "*.pdf"))
         {
-            File.Delete(stalePdf);
+            File.Delete(file);
         }
-
-        var generatedFiles = new List<string>();
-        foreach (var preview in CreatePreviewDocuments())
-        {
-            var filePath = Path.Combine(OutputDirectory, preview.FileName);
-            var bytes = preview.Document.GeneratePdf();
-
-            File.WriteAllBytes(filePath, bytes);
-            generatedFiles.Add(filePath);
-            Console.WriteLine($"Generated PDF preview: {filePath}");
-        }
-
-        Assert.Equal(5, generatedFiles.Count);
-        foreach (var filePath in generatedFiles)
-        {
-            var fileInfo = new FileInfo(filePath);
-            Assert.True(fileInfo.Exists, $"Expected preview PDF to exist: {filePath}");
-            Assert.True(fileInfo.Length > 0, $"Expected preview PDF to contain bytes: {filePath}");
-        }
-    }
-
-    private static IEnumerable<(string FileName, IDocument Document)> CreatePreviewDocuments()
-    {
-        yield return ("Invoice_Standard.pdf", new InvoiceDocument(new InvoiceData
-        {
-            InvoiceNumber = "INV-PREVIEW-001",
-            Currency = "THB",
-            Items =
-            [
-                new InvoiceItemData { Index = 1, Description = "CNC machined aluminum bracket", Quantity = 2, TotalPrice = 2400 },
-                new InvoiceItemData { Index = 2, Description = "3D printed nylon jig - ภาษาไทย", Quantity = 1, TotalPrice = 850 }
-            ]
-        }));
-
-        yield return ("Quotation_Standard.pdf", new QuotationDocument(new QuotationData
-        {
-            QuotationNumber = "QUO-PREVIEW-001",
-            CustomerName = "MALIEV Preview Customer",
-            QuotationDate = new DateTime(2026, 5, 2),
-            Currency = "THB",
-            TotalAmount = 3250,
-            Items =
-            [
-                new QuotationItemData { Index = 1, Description = "Prototype enclosure", Quantity = 3, UnitPrice = 750, TotalPrice = 2250 },
-                new QuotationItemData { Index = 2, Description = "Finishing and inspection", Quantity = 1, UnitPrice = 1000, TotalPrice = 1000 }
-            ]
-        }));
-
-        yield return ("Receipt_Standard.pdf", new ReceiptDocument(new
-        {
-            ReceiptNumber = "RCP-PREVIEW-001",
-            CustomerName = "MALIEV Preview Customer",
-            PaymentMethod = "Bank transfer",
-            TotalAmount = 3250,
-            Currency = "THB"
-        }));
-
-        yield return ("DeliveryNote_Standard.pdf", new DeliveryNoteDocument(new DeliveryNoteData
-        {
-            DeliveryNoteNumber = "DN-PREVIEW-001",
-            OrderNumber = "ORD-PREVIEW-001",
-            CustomerName = "MALIEV Preview Customer",
-            CustomerAddress = "123 Manufacturing Road, Bangkok 10110",
-            DeliveryDate = new DateTime(2026, 5, 2),
-            TrackingNumber = "TRACK-PREVIEW-001",
-            CarrierName = "MALIEV Logistics",
-            DeliveryContact = "Somsak Preview",
-            DeliveryPhone = "+66 2 000 0000",
-            Notes = "Handle with care. Partial shipment accepted.",
-            Items =
-            [
-                new DeliveryNoteItemData
-                {
-                    ProductCode = "CNC-BRACKET",
-                    ProductName = "Aluminum bracket - ชิ้นงานตัวอย่าง",
-                    QuantityOrdered = 10,
-                    QuantityManufactured = 10,
-                    QuantityDelivered = 8,
-                    UnitOfMeasure = "pcs"
-                },
-                new DeliveryNoteItemData
-                {
-                    ProductCode = "NYLON-JIG",
-                    ProductName = "Nylon inspection jig",
-                    QuantityOrdered = 4,
-                    QuantityManufactured = 4,
-                    QuantityDelivered = 4,
-                    UnitOfMeasure = "pcs"
-                }
-            ]
-        }));
-
-        yield return ("FinancialReport_Standard.pdf", new FinancialReportDocument(new
-        {
-            ReportTitle = "Monthly Manufacturing Summary",
-            ReportNumber = "RPT-PREVIEW-001",
-            Period = "May 2026",
-            TotalRevenue = 150000,
-            TotalExpenses = 92000,
-            NetProfit = 58000,
-            Currency = "THB"
-        }));
     }
 
     private static string FindRepositoryRoot()

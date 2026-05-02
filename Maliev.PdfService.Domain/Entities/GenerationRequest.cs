@@ -59,7 +59,9 @@ public enum DocumentType
     /// <summary>Financial or operational report.</summary>
     Report,
     /// <summary>Delivery note document (ใบส่งของ).</summary>
-    DeliveryNote
+    DeliveryNote,
+    /// <summary>Job ticket for shop floor manufacturing work orders.</summary>
+    JobTicket
 }
 
 /// <summary>

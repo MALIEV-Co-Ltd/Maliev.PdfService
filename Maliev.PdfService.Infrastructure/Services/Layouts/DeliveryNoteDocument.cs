@@ -1,7 +1,9 @@
 using Maliev.PdfService.Api.Models.Data;
+using QRCoder;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using System.IO;
 
 namespace Maliev.PdfService.Api.Services.Layouts;
 
@@ -29,44 +31,46 @@ public class DeliveryNoteDocument : IDocument
     {
         container.Page(page =>
         {
+            page.Size(PageSizes.A4);
             page.Margin(40);
-            page.DefaultTextStyle(x => x.FontFamily("Kanit").FontSize(10));
+            page.DefaultTextStyle(x => x.FontFamily("Roboto", "Noto Sans Thai").FontSize(10));
+
+            page.Foreground().Column(fg =>
+            {
+                fg.Item().PaddingTop(99, Unit.Millimetre).Width(8).LineHorizontal(1).LineColor(Colors.Black);
+                fg.Item().PaddingTop(99, Unit.Millimetre).Width(8).LineHorizontal(1).LineColor(Colors.Black);
+            });
 
             page.Header().Column(header =>
             {
-                // Bilingual Title
-                header.Item().AlignCenter().Text(text =>
+                header.Item().Row(headerRow =>
                 {
-                    text.Span("ใบส่งของ / DELIVERY NOTE").FontSize(20).Bold().FontColor(Colors.Blue.Medium);
-                });
-
-                header.Item().PaddingTop(10).Row(row =>
-                {
-                    // Left: Delivery Note Number
-                    row.RelativeItem().Column(col =>
+                    headerRow.RelativeItem().Column(col =>
                     {
-                        col.Item().Text($"Delivery Note #: {Data.DeliveryNoteNumber}").Bold();
-                        if (!string.IsNullOrEmpty(Data.OrderNumber))
-                        {
-                            col.Item().Text($"Order #: {Data.OrderNumber}").FontSize(9);
-                        }
+                        col.Item().Height(20).Width(60).Svg(File.ReadAllText("Resources/MALIEV_BLACK.svg"));
+                        col.Item().PaddingTop(3).Text("MALIEV Co., Ltd. (Head Office) | สำนักงานใหญ่").FontSize(8).Bold();
+                        col.Item().Text("36/1 Moo 3, Khlong Khoi, Pak Kret, Nonthaburi 11120").FontSize(8).FontColor(Colors.Grey.Darken1);
+                        col.Item().Text("บริษัท มาลีฟ จำกัด 36/1 หมู่ 3 ต.คลองขอย อ.ปากเกร็ด จ.นนทบุรี 11120").FontSize(8).FontColor(Colors.Grey.Darken1);
+                        col.Item().Text("www.maliev.com | info@maliev.com | Tax ID: 0125561001573").FontSize(8).FontColor(Colors.Grey.Darken1);
                     });
 
-                    // Right: Date
-                    row.RelativeItem().AlignRight().Column(col =>
+                    headerRow.ConstantItem(160).AlignRight().Column(col =>
                     {
-                        col.Item().Text($"Date: {Data.DeliveryDate:dd MMM yyyy}");
-                        if (!string.IsNullOrEmpty(Data.TrackingNumber))
-                        {
-                            col.Item().Text($"Tracking: {Data.TrackingNumber}").FontSize(9);
-                        }
+                        col.Item().AlignRight().Text("DELIVERY NOTE").FontSize(16).Bold();
+                        col.Item().AlignRight().Text("ใบส่งของ").FontSize(14);
+                        col.Item().PaddingTop(2).AlignRight().Text($"{Data.DeliveryNoteNumber}").FontSize(11).Bold();
+                    });
+
+                    headerRow.ConstantItem(70).AlignRight().Column(col =>
+                    {
+                        col.Item().PaddingLeft(10).Width(60).Height(60).Image(GenerateQrCode(Data.DeliveryNoteNumber));
                     });
                 });
 
-                header.Item().PaddingTop(5).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+                header.Item().PaddingTop(8).LineHorizontal(1);
             });
 
-            page.Content().PaddingVertical(15).Column(content =>
+            page.Content().PaddingTop(15).PaddingBottom(30).Column(content =>
             {
                 // Customer & Delivery Information Section
                 content.Item().Row(row =>
@@ -83,34 +87,49 @@ public class DeliveryNoteDocument : IDocument
                     row.RelativeItem().PaddingLeft(20).Column(col =>
                     {
                         col.Item().Text("ผู้ติดต่อรับสินค้า / DELIVERY CONTACT:").Bold().FontSize(9).FontColor(Colors.Grey.Darken1);
-                        if (!string.IsNullOrEmpty(Data.DeliveryContact))
+                        var hasContact = !string.IsNullOrEmpty(Data.DeliveryContact) || !string.IsNullOrEmpty(Data.DeliveryPhone) || !string.IsNullOrEmpty(Data.CarrierName);
+                        if (hasContact)
                         {
-                            col.Item().PaddingTop(3).Text(Data.DeliveryContact).FontSize(10);
+                            if (!string.IsNullOrEmpty(Data.DeliveryContact))
+                            {
+                                col.Item().PaddingTop(3).Text(Data.DeliveryContact).FontSize(10);
+                            }
+                            if (!string.IsNullOrEmpty(Data.DeliveryPhone))
+                            {
+                                col.Item().Text($"Tel: {Data.DeliveryPhone}").FontSize(9);
+                            }
+                            if (!string.IsNullOrEmpty(Data.CarrierName))
+                            {
+                                col.Item().PaddingTop(3).Text($"Carrier: {Data.CarrierName}").FontSize(9);
+                            }
                         }
-                        if (!string.IsNullOrEmpty(Data.DeliveryPhone))
+                        else
                         {
-                            col.Item().Text($"Tel: {Data.DeliveryPhone}").FontSize(9);
-                        }
-                        if (!string.IsNullOrEmpty(Data.CarrierName))
-                        {
-                            col.Item().PaddingTop(3).Text($"Carrier: {Data.CarrierName}").FontSize(9);
+                            col.Item().PaddingTop(3).Text("-").FontSize(9);
                         }
                     });
                 });
 
-                content.Item().PaddingTop(15).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+                var tracking = string.IsNullOrEmpty(Data.TrackingNumber) ? "n/a" : Data.TrackingNumber;
+
+                // Table Caption: Delivery Date & Tracking
+                content.Item().PaddingTop(10).Row(captionRow =>
+                {
+                    captionRow.RelativeItem().Text($"Delivery Date: {Data.DeliveryDate:dd MMM yyyy}").FontSize(8).FontColor(Colors.Grey.Darken1);
+                    captionRow.RelativeItem().AlignRight().Text($"Tracking: {tracking}").FontSize(8).FontColor(Colors.Grey.Darken1);
+                });
 
                 // Items Table
-                content.Item().PaddingTop(10).Table(table =>
+                content.Item().PaddingTop(3).Table(table =>
                 {
                     table.ColumnsDefinition(columns =>
                     {
                         columns.ConstantColumn(30);  // #
                         columns.ConstantColumn(80);  // Product Code
                         columns.RelativeColumn(3);   // Product Name
-                        columns.ConstantColumn(60);  // Ordered
-                        columns.ConstantColumn(70);  // Manufactured
-                        columns.ConstantColumn(60);  // Delivered
+                        columns.ConstantColumn(70);  // Ordered
+                        columns.ConstantColumn(80);  // Manufactured
+                        columns.ConstantColumn(70);  // Delivered
                         columns.ConstantColumn(50);  // Unit
                     });
 
@@ -131,63 +150,61 @@ public class DeliveryNoteDocument : IDocument
                     foreach (var item in Data.Items)
                     {
                         var isPartialDelivery = item.QuantityDelivered < item.QuantityManufactured;
-                        var rowColor = isPartialDelivery ? Colors.Orange.Lighten4 : Colors.White;
+                        var rowColor = isPartialDelivery ? Colors.Grey.Lighten4 : Colors.White;
 
-                        table.Cell().Element(cell => DataCellStyle(cell, rowColor)).Text(index.ToString());
-                        table.Cell().Element(cell => DataCellStyle(cell, rowColor)).Text(item.ProductCode);
-                        table.Cell().Element(cell => DataCellStyle(cell, rowColor)).Text(item.ProductName);
-                        table.Cell().Element(cell => DataCellStyle(cell, rowColor)).AlignRight().Text(item.QuantityOrdered.ToString("N2"));
-                        table.Cell().Element(cell => DataCellStyle(cell, rowColor)).AlignRight().Text(item.QuantityManufactured.ToString("N2"));
-                        table.Cell().Element(cell => DataCellStyle(cell, rowColor)).AlignRight().Text(item.QuantityDelivered.ToString("N2")).Bold();
-                        table.Cell().Element(cell => DataCellStyle(cell, rowColor)).Text(item.UnitOfMeasure);
+                        table.Cell().ShowEntire().Element(cell => DataCellStyle(cell, rowColor)).Text(index.ToString());
+                        table.Cell().ShowEntire().Element(cell => DataCellStyle(cell, rowColor)).Text(item.ProductCode);
+                        table.Cell().ShowEntire().Element(cell => DataCellStyle(cell, rowColor)).Text(item.ProductName);
+                        table.Cell().ShowEntire().Element(cell => DataCellStyle(cell, rowColor)).AlignRight().Text(item.QuantityOrdered.ToString("N2"));
+                        table.Cell().ShowEntire().Element(cell => DataCellStyle(cell, rowColor)).AlignRight().Text(item.QuantityManufactured.ToString("N2"));
+                        table.Cell().ShowEntire().Element(cell => DataCellStyle(cell, rowColor)).AlignRight().Text(item.QuantityDelivered.ToString("N2")).Bold();
+                        table.Cell().ShowEntire().Element(cell => DataCellStyle(cell, rowColor)).Text(item.UnitOfMeasure);
 
                         index++;
                     }
                 });
 
-                // Notes Section
-                if (!string.IsNullOrEmpty(Data.Notes))
+                // Notes Section - always visible
+                content.Item().PaddingTop(15).Column(col =>
                 {
-                    content.Item().PaddingTop(15).Column(col =>
-                    {
-                        col.Item().Text("หมายเหตุ / NOTES:").Bold().FontSize(9).FontColor(Colors.Grey.Darken1);
-                        col.Item().PaddingTop(3).Text(Data.Notes).FontSize(9);
-                    });
-                }
+                    col.Item().Text("หมายเหตุ / NOTES:").Bold().FontSize(9).FontColor(Colors.Grey.Darken1);
+                    col.Item().PaddingTop(3).Text(string.IsNullOrEmpty(Data.Notes) ? "-" : Data.Notes).FontSize(9);
+                });
 
-                // Signature Section
-                content.Item().PaddingTop(30).Row(row =>
+                // Signature block — always at the end of the last page, no page breaks
+                content.Item().ShowEntire().PaddingTop(30).Column(sigCol =>
                 {
-                    // Delivered By
-                    row.RelativeItem().Column(col =>
+                    sigCol.Item().Row(sigRow =>
                     {
-                        col.Item().Text("ผู้ส่งของ / Delivered by").FontSize(9).FontColor(Colors.Grey.Darken1);
-                        col.Item().PaddingTop(30).LineHorizontal(1).LineColor(Colors.Grey.Medium);
-                        col.Item().PaddingTop(3).AlignCenter().Text("Signature & Date").FontSize(8);
-                    });
+                        sigRow.RelativeItem().Column(col =>
+                        {
+                            col.Item().Text("Delivered by:").FontSize(9).FontColor(Colors.Grey.Darken1);
+                            col.Item().PaddingTop(60).LineHorizontal(1).LineColor(Colors.Grey.Medium);
+                            col.Item().PaddingTop(10).AlignCenter().Text("Signature & Date").FontSize(8);
+                        });
 
-                    row.ConstantItem(40); // Spacer
+                        sigRow.ConstantItem(40);
 
-                    // Received By
-                    row.RelativeItem().Column(col =>
-                    {
-                        col.Item().Text("ผู้รับของ / Received by").FontSize(9).FontColor(Colors.Grey.Darken1);
-                        col.Item().PaddingTop(30).LineHorizontal(1).LineColor(Colors.Grey.Medium);
-                        col.Item().PaddingTop(3).AlignCenter().Text("Signature & Date").FontSize(8);
+                        sigRow.RelativeItem().Column(col =>
+                        {
+                            col.Item().Text("Received by:").FontSize(9).FontColor(Colors.Grey.Darken1);
+                            col.Item().PaddingTop(60).LineHorizontal(1).LineColor(Colors.Grey.Medium);
+                            col.Item().PaddingTop(10).AlignCenter().Text("Signature & Date").FontSize(8);
+                        });
                     });
                 });
             });
 
-            page.Footer().AlignCenter().Column(footer =>
+            page.Footer().Row(footerRow =>
             {
-                footer.Item().LineHorizontal(1).LineColor(Colors.Grey.Lighten3);
-                footer.Item().PaddingTop(5).Text(text =>
+                footerRow.RelativeItem().Text("MALIEV Co., Ltd.").FontSize(7);
+                footerRow.RelativeItem().AlignCenter().Text(Data.DeliveryNoteNumber).FontSize(7);
+                footerRow.RelativeItem().AlignRight().Text(text =>
                 {
-                    text.Span("Page ");
-                    text.CurrentPageNumber();
-                    text.Span(" of ");
-                    text.TotalPages();
-                    text.Span(" • Generated by Maliev Platform");
+                    text.Span("Page ").FontSize(7);
+                    text.CurrentPageNumber().FontSize(7);
+                    text.Span(" of ").FontSize(7);
+                    text.TotalPages().FontSize(7);
                 });
             });
         });
@@ -200,10 +217,10 @@ public class DeliveryNoteDocument : IDocument
     {
         return container
             .Border(1)
-            .BorderColor(Colors.Grey.Lighten2)
-            .Background(Colors.Grey.Lighten3)
+            .BorderColor(Colors.Black)
+            .Background(Colors.Black)
             .Padding(5)
-            .DefaultTextStyle(x => x.Bold().FontSize(9));
+            .DefaultTextStyle(x => x.Bold().FontSize(9).FontColor(Colors.White));
     }
 
     /// <summary>
@@ -217,5 +234,14 @@ public class DeliveryNoteDocument : IDocument
             .Background(backgroundColor)
             .Padding(5)
             .DefaultTextStyle(x => x.FontSize(9));
+    }
+
+    private static byte[] GenerateQrCode(string deliveryNoteNumber)
+    {
+        var url = $"https://app.maliev.com/delivery/{deliveryNoteNumber}";
+        using var qrGenerator = new QRCodeGenerator();
+        using var qrCodeData = qrGenerator.CreateQrCode(url, QRCodeGenerator.ECCLevel.L);
+        using var qrCode = new PngByteQRCode(qrCodeData);
+        return qrCode.GetGraphic(20);
     }
 }

@@ -5,10 +5,10 @@ using Maliev.PdfService.Api.Services;
 using Maliev.PdfService.Infrastructure.Data;
 using Maliev.PdfService.Domain.Entities;
 using MassTransit;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Testcontainers.PostgreSql;
 using Xunit;
 
 namespace Maliev.PdfService.Tests.Unit;
@@ -16,32 +16,47 @@ namespace Maliev.PdfService.Tests.Unit;
 /// <summary>
 /// Unit tests for invoice finalized consumer PDF generation behavior.
 /// </summary>
-public class InvoiceFinalizedConsumerTests : IDisposable
+public class InvoiceFinalizedConsumerTests : IAsyncLifetime
 {
+    private readonly PostgreSqlContainer _dbContainer =
+#pragma warning disable CS0618
+        new PostgreSqlBuilder().WithImage("postgres:18-alpine")
+        .Build();
+#pragma warning restore CS0618
+
     private readonly Mock<IPdfGenerator> _pdfGeneratorMock = new();
     private readonly Mock<IUploadServiceClient> _uploadServiceMock = new();
     private readonly Mock<ILogger<InvoiceFinalizedConsumer>> _loggerMock = new();
-    private readonly InvoiceFinalizedConsumer _consumer;
-    private readonly SqliteConnection _connection;
-    private readonly PdfDbContext _dbContext;
+    private InvoiceFinalizedConsumer _consumer = null!;
+    private PdfDbContext _dbContext = null!;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="InvoiceFinalizedConsumerTests"/> class.
+    /// Starts the PostgreSQL test container and creates a consumer under test.
     /// </summary>
-    public InvoiceFinalizedConsumerTests()
+    /// <returns>A task that represents the asynchronous initialization operation.</returns>
+    public async Task InitializeAsync()
     {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
+        await _dbContainer.StartAsync();
 
         var options = new DbContextOptionsBuilder<PdfDbContext>()
-            .UseSqlite(_connection)
+            .UseNpgsql(_dbContainer.GetConnectionString())
             .Options;
         _dbContext = new PdfDbContext(options);
-        _dbContext.Database.EnsureCreated();
+        await _dbContext.Database.EnsureCreatedAsync();
         var dbContext = _dbContext;
 
         var invoiceClientMock = new Moq.Mock<Maliev.PdfService.Api.Services.IInvoiceServiceClient>();
         _consumer = new InvoiceFinalizedConsumer(_pdfGeneratorMock.Object, _uploadServiceMock.Object, dbContext, _loggerMock.Object, invoiceClientMock.Object);
+    }
+
+    /// <summary>
+    /// Disposes the PostgreSQL test container after the test run.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous disposal operation.</returns>
+    public async Task DisposeAsync()
+    {
+        await _dbContext.DisposeAsync();
+        await _dbContainer.DisposeAsync();
     }
 
     /// <summary>
@@ -96,11 +111,4 @@ public class InvoiceFinalizedConsumerTests : IDisposable
         await Assert.ThrowsAsync<Exception>(() => _consumer.Consume(contextMock.Object));
     }
 
-    /// <inheritdoc/>
-    public void Dispose()
-    {
-        _dbContext.Dispose();
-        _connection.Dispose();
-        GC.SuppressFinalize(this);
-    }
 }

@@ -5,6 +5,7 @@ namespace Maliev.PdfService.Api.Services;
 
 /// <summary>
 /// Default implementation of the font resolver.
+/// Registers Roboto (Latin/English) and Noto Sans Thai for bilingual PDF generation.
 /// </summary>
 public class FontResolver : IFontResolver
 {
@@ -39,8 +40,15 @@ public class FontResolver : IFontResolver
             var fontsPath = Path.Combine(_env.ContentRootPath, "Resources", "Fonts");
             if (Directory.Exists(fontsPath))
             {
-                RegisterFontIfExists(Path.Combine(fontsPath, "Kanit-Regular.ttf"));
-                RegisterFontIfExists(Path.Combine(fontsPath, "Kanit-Bold.ttf"));
+                // Roboto — Latin/English (Regular, SemiBold, Bold)
+                RegisterFontIfExists(Path.Combine(fontsPath, "Roboto-Regular.ttf"));
+                RegisterFontIfExists(Path.Combine(fontsPath, "Roboto-SemiBold.ttf"));
+                RegisterFontIfExists(Path.Combine(fontsPath, "Roboto-Bold.ttf"));
+
+                // Noto Sans Thai — Thai script (Regular, SemiBold, Bold)
+                RegisterFontIfExists(Path.Combine(fontsPath, "NotoSansThai-Regular.ttf"));
+                RegisterFontIfExists(Path.Combine(fontsPath, "NotoSansThai-SemiBold.ttf"));
+                RegisterFontIfExists(Path.Combine(fontsPath, "NotoSansThai-Bold.ttf"));
             }
 
             _fontsRegistered = true;

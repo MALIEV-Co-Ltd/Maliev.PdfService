@@ -10,25 +10,24 @@ using Maliev.PdfService.Domain.Entities;
 namespace Maliev.PdfService.Tests.Integration;
 
 /// <summary>
-/// Integration tests for asynchronous PDF generation endpoints.
+/// Integration tests for asynchronous PDF generation.
 /// </summary>
 public class AsyncGenerationTests : IClassFixture<PdfServiceTestFactory>
 {
     private readonly PdfServiceTestFactory _factory;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="AsyncGenerationTests"/> class.
+    /// Initializes a new instance of the AsyncGenerationTests class.
     /// </summary>
-    /// <param name="factory">The PDF service test factory.</param>
+    /// <param name="factory">The test factory.</param>
     public AsyncGenerationTests(PdfServiceTestFactory factory)
     {
         _factory = factory;
     }
 
     /// <summary>
-    /// Verifies that asynchronous generation accepts the request and returns a request identifier.
+    /// Tests that GenerateAsync returns Accepted with request ID.
     /// </summary>
-    /// <returns>A task that represents the asynchronous test operation.</returns>
     [Fact]
     public async Task GenerateAsync_ReturnsAcceptedWithRequestId()
     {
@@ -43,7 +42,7 @@ public class AsyncGenerationTests : IClassFixture<PdfServiceTestFactory>
             Data = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(new InvoiceData
             {
                 InvoiceNumber = "INV-2025-001",
-                Items = new List<InvoiceItemData> { new InvoiceItemData { Index = 1, Description = "Test Item", Quantity = 1, TotalPrice = 100.0 } }
+                Items = new List<InvoiceItemData> { new InvoiceItemData { Index = 1, Description = "Test Item", Quantity = 1m, UnitPrice = 100m, LineSubtotal = 100m, LineTotal = 100m } }
             }))
         };
 
