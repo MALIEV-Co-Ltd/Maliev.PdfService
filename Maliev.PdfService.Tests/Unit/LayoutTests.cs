@@ -129,6 +129,54 @@ public class LayoutTests
     }
 
     /// <summary>
+    /// Tests that QuotationDocument generates the compact summary when shipping and discount are zero and shipping address is omitted.
+    /// </summary>
+    [Fact]
+    public void QuotationDocument_GeneratesPdf_WithBillingOnlyAddressAndZeroAdjustments()
+    {
+        // Arrange
+        var document = new QuotationDocument(new QuotationData
+        {
+            QuotationNumber = "Q-BILLING-ONLY",
+            CustomerName = "Acme Thailand",
+            CustomerType = "Corporate",
+            BillingAddressLines =
+            [
+                "88 Billing Road",
+                "Bangkok 10110",
+            ],
+            Items =
+            [
+                new QuotationItemData
+                {
+                    Index = 1,
+                    PartName = "bracket.step",
+                    MaterialName = "Delrin / POM",
+                    ManufacturingProcess = "CNC Milling",
+                    Quantity = 1,
+                    QuantityUnit = "pcs",
+                    UnitPrice = 100,
+                    LineTotal = 100
+                }
+            ],
+            SubtotalBeforeDiscount = 100,
+            ManualDiscountAmount = 0,
+            ShippingCost = 0,
+            Subtotal = 100,
+            TaxAmount = 7,
+            TotalAmount = 107,
+            DeliveryExpectations = "Standard: 6 - 9 business days after order confirmation",
+        });
+
+        // Act
+        var pdf = document.GeneratePdf();
+
+        // Assert
+        Assert.NotNull(pdf);
+        Assert.NotEmpty(pdf);
+    }
+
+    /// <summary>
     /// Tests that unavailable remote quotation thumbnails are skipped instead of failing PDF generation.
     /// </summary>
     [Fact]

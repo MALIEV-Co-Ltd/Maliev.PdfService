@@ -86,16 +86,18 @@ public class QuotationDocument : IDocument
                         col.Item().PaddingTop(3).Element(ComposeCustomerLines);
 
                         var billingAddressLines = GetLines(Data.BillingAddressLines, Data.BillingAddress ?? Data.CustomerAddress);
-                        var shippingAddressLines = GetLines(Data.ShippingAddressLines, Data.ShippingAddress);
-                        if (billingAddressLines.Count > 0 || shippingAddressLines.Count > 0)
+                        var shippingAddressLines = GetLines(Data.ShippingAddressLines, Data.ShippingAddress ?? Data.BillingAddress ?? Data.CustomerAddress);
+                        if (shippingAddressLines.Count == 0 && billingAddressLines.Count > 0)
                         {
-                            col.Item().PaddingTop(10).Row(addressRow =>
-                            {
-                                addressRow.RelativeItem().Element(container => ComposeAddressBlock(container, "Billing address", billingAddressLines));
-                                addressRow.ConstantItem(26);
-                                addressRow.RelativeItem().Element(container => ComposeAddressBlock(container, "Shipping address", shippingAddressLines));
-                            });
+                            shippingAddressLines = billingAddressLines;
                         }
+
+                        col.Item().PaddingTop(10).Row(addressRow =>
+                        {
+                            addressRow.RelativeItem().Element(container => ComposeAddressBlock(container, "Billing address", billingAddressLines));
+                            addressRow.ConstantItem(22);
+                            addressRow.RelativeItem().Element(container => ComposeAddressBlock(container, "Shipping address", shippingAddressLines));
+                        });
                     });
 
                     row.ConstantItem(150).AlignRight().Table(dateTable =>
@@ -181,6 +183,23 @@ public class QuotationDocument : IDocument
                     }
                 });
 
+                content.Item().PaddingTop(8).Row(summary =>
+                {
+                    summary.RelativeItem().Column(leadTime =>
+                    {
+                        leadTime.Item().Text("Lead Time:").Bold().FontSize(8.5f);
+                        leadTime.Item()
+                            .PaddingTop(2)
+                            .Text(string.IsNullOrWhiteSpace(Data.DeliveryExpectations)
+                                ? "To be confirmed after project review"
+                                : Data.DeliveryExpectations)
+                            .FontSize(8.5f);
+                    });
+
+                    summary.ConstantItem(24);
+                    summary.ConstantItem(190).Element(ComposeTotals);
+                });
+
                 if (Data.Discounts.Count > 0)
                 {
                     content.Item().PaddingTop(8).Column(discCol =>
@@ -193,74 +212,11 @@ public class QuotationDocument : IDocument
                                 var valueStr = discount.DiscountType == "Percentage"
                                     ? $"{discount.DiscountValue:N1}%"
                                     : $"{Data.Currency} {discount.DiscountValue:N2}";
-                                text.Span($"  • {discount.DiscountType}: {valueStr}").FontSize(9);
+                                text.Span($"  • {discount.DiscountType}: {valueStr}").FontSize(8);
                                 if (!string.IsNullOrEmpty(discount.Conditions))
                                     text.Span($" — {discount.Conditions}").FontSize(8).FontColor(Colors.Grey.Darken1);
                             });
                         }
-                    });
-                }
-
-                content.Item().PaddingTop(8).AlignRight().Width(260).Column(totals =>
-                {
-                    var discountAmount = Data.ManualDiscountAmount > 0 ? Data.ManualDiscountAmount : Data.TotalDiscount;
-                    if (discountAmount > 0 || Data.ShippingCost > 0)
-                    {
-                        totals.Item().Row(r =>
-                        {
-                            r.RelativeItem().Text("Items subtotal:").FontSize(9);
-                            r.ConstantItem(100).AlignRight().Text(Data.SubtotalBeforeDiscount.ToString("N2")).FontSize(9);
-                        });
-                    }
-
-                    if (discountAmount > 0)
-                    {
-                        totals.Item().Row(r =>
-                        {
-                            r.RelativeItem().Text("Discount:").FontSize(9);
-                            r.ConstantItem(100).AlignRight().Text($"−{discountAmount:N2}").FontSize(9);
-                        });
-                    }
-
-                    if (Data.ShippingCost > 0)
-                    {
-                        totals.Item().Row(r =>
-                        {
-                            r.RelativeItem().Text("Shipping:").FontSize(9);
-                            r.ConstantItem(100).AlignRight().Text(Data.ShippingCost.ToString("N2")).FontSize(9);
-                        });
-                    }
-
-                    totals.Item().Row(r =>
-                    {
-                        r.RelativeItem().Text("Subtotal:").FontSize(9);
-                        r.ConstantItem(100).AlignRight().Text(Data.Subtotal.ToString("N2")).FontSize(9);
-                    });
-
-                    if (Data.TaxAmount > 0)
-                    {
-                        totals.Item().Row(r =>
-                        {
-                            r.RelativeItem().Text("VAT (7%):").FontSize(9);
-                            r.ConstantItem(100).AlignRight().Text(Data.TaxAmount.ToString("N2")).FontSize(9);
-                        });
-                    }
-
-                    totals.Item().PaddingTop(4).BorderTop(1).Row(r =>
-                    {
-                        r.RelativeItem().Text($"TOTAL ({Data.Currency}):").Bold().FontSize(11);
-                        r.ConstantItem(100).AlignRight().Text(Data.TotalAmount.ToString("N2")).Bold().FontSize(11);
-                    });
-                });
-
-                content.Item().PaddingTop(14).LineHorizontal(1).LineColor(Colors.Grey.Lighten3);
-
-                if (!string.IsNullOrEmpty(Data.DeliveryExpectations))
-                {
-                    content.Item().PaddingTop(8).Row(r =>
-                    {
-                        r.ConstantItem(100).Text("Lead Time:").Bold().FontSize(9);
-                        r.RelativeItem().Text(Data.DeliveryExpectations).FontSize(9);
                     });
                 }
 
@@ -323,6 +279,39 @@ public class QuotationDocument : IDocument
         {
             return false;
         }
+    }
+
+    private void ComposeTotals(IContainer container)
+    {
+        var discountAmount = Data.ManualDiscountAmount > 0 ? Data.ManualDiscountAmount : Data.TotalDiscount;
+        var subtotal = Data.SubtotalBeforeDiscount > 0
+            ? Data.SubtotalBeforeDiscount
+            : Math.Max(0, Data.Subtotal + discountAmount - Data.ShippingCost);
+
+        container.AlignRight().Width(190).Column(totals =>
+        {
+            AddTotalRow(totals, "Subtotal:", subtotal);
+            AddTotalRow(totals, "Discount:", discountAmount, isDiscount: true);
+            AddTotalRow(totals, "Shipping:", Data.ShippingCost);
+            AddTotalRow(totals, "VAT (7%):", Data.TaxAmount);
+
+            totals.Item().PaddingTop(2).DefaultTextStyle(x => x.Bold().FontSize(10)).Row(r =>
+            {
+                r.RelativeItem().Text($"TOTAL ({Data.Currency}):");
+                r.ConstantItem(82).AlignRight().Text(Data.TotalAmount.ToString("N2"));
+            });
+        });
+    }
+
+    private static void AddTotalRow(ColumnDescriptor totals, string label, decimal amount, bool isDiscount = false)
+    {
+        var value = amount > 0 && isDiscount ? $"-{amount:N2}" : amount.ToString("N2");
+
+        totals.Item().DefaultTextStyle(x => x.FontSize(8.5f)).Row(r =>
+        {
+            r.RelativeItem().Text(label);
+            r.ConstantItem(82).AlignRight().Text(value);
+        });
     }
 
     private byte[]? TryGetThumbnailBytes(string? thumbnailReference)
@@ -455,13 +444,11 @@ public class QuotationDocument : IDocument
 
     private static void ComposeAddressBlock(IContainer container, string title, IReadOnlyList<string> addressLines)
     {
-        if (addressLines.Count == 0)
-            return;
-
         container.Column(col =>
         {
             col.Item().Text(title).FontSize(7).Bold().FontColor(Colors.Grey.Darken1);
-            foreach (var line in addressLines)
+            IReadOnlyList<string> lines = addressLines.Count == 0 ? ["-"] : addressLines;
+            foreach (var line in lines)
                 col.Item().Text(line).FontSize(8);
         });
     }
