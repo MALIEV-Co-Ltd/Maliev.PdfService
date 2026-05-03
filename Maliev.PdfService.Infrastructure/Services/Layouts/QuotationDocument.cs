@@ -166,7 +166,7 @@ public class QuotationDocument : IDocument
                                     serviceCol.Item().Text(item.PartName ?? item.MaterialName).Bold();
                                     var detailLines = GetLines(item.DetailLines, item.Notes);
                                     foreach (var detailLine in detailLines)
-                                        serviceCol.Item().Text(detailLine).FontSize(7).FontColor(Colors.Grey.Darken1);
+                                        serviceCol.Item().Text(detailLine).FontSize(7).FontColor(Colors.Grey.Darken1).LineHeight(1.25f);
                                 });
                             });
                         });
@@ -251,7 +251,7 @@ public class QuotationDocument : IDocument
                 footer.Item().Row(row =>
                 {
                     row.RelativeItem().Text("Maliev Co., Ltd.").FontSize(7);
-                    row.RelativeItem().AlignCenter().Text(Data.QuotationNumber).FontSize(7);
+                    row.RelativeItem().AlignCenter().Text(string.Empty).FontSize(7);
                     row.RelativeItem().AlignRight().Text(text =>
                     {
                         text.Span("Page ").FontSize(7);
@@ -297,8 +297,8 @@ public class QuotationDocument : IDocument
 
             totals.Item().PaddingTop(2).DefaultTextStyle(x => x.Bold().FontSize(10)).Row(r =>
             {
-                r.RelativeItem().Text($"TOTAL ({Data.Currency}):");
-                r.ConstantItem(82).AlignRight().Text(Data.TotalAmount.ToString("N2"));
+                r.RelativeItem().Text($"TOTAL ({Data.Currency}):").LineHeight(1.35f);
+                r.ConstantItem(82).AlignRight().Text(Data.TotalAmount.ToString("N2")).LineHeight(1.35f);
             });
         });
     }
@@ -309,8 +309,8 @@ public class QuotationDocument : IDocument
 
         totals.Item().DefaultTextStyle(x => x.FontSize(8.5f)).Row(r =>
         {
-            r.RelativeItem().Text(label);
-            r.ConstantItem(82).AlignRight().Text(value);
+            r.RelativeItem().Text(label).LineHeight(1.35f);
+            r.ConstantItem(82).AlignRight().Text(value).LineHeight(1.35f);
         });
     }
 
