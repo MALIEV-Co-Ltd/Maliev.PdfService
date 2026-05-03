@@ -84,6 +84,12 @@ public class QuotationData
     /// <summary>Total discount amount.</summary>
     public decimal TotalDiscount { get; set; }
 
+    /// <summary>Manual discount amount entered for this quotation.</summary>
+    public decimal ManualDiscountAmount { get; set; }
+
+    /// <summary>Shipping or delivery cost applied to the quotation.</summary>
+    public decimal ShippingCost { get; set; }
+
     /// <summary>Subtotal after discounts, before tax.</summary>
     public decimal Subtotal { get; set; }
 
@@ -148,6 +154,9 @@ public class QuotationItemData
 
     /// <summary>Additional notes for this line (e.g., surface finish, tolerance).</summary>
     public string? Notes { get; set; }
+
+    /// <summary>Optional thumbnail image URL for the quoted part.</summary>
+    public string? ThumbnailUrl { get; set; }
 }
 
 /// <summary>

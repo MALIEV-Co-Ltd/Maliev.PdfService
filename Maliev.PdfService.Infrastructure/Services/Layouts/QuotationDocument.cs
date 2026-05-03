@@ -77,30 +77,31 @@ public class QuotationDocument : IDocument
                         col.Item().PaddingTop(3).Element(ComposeCustomerLines);
 
                         var billingAddressLines = GetLines(Data.BillingAddressLines, Data.BillingAddress ?? Data.CustomerAddress);
-                        if (billingAddressLines.Count > 0)
-                            col.Item().PaddingTop(8).Element(container => ComposeAddressBlock(container, "Billing address", billingAddressLines));
+                        var shippingAddressLines = GetLines(Data.ShippingAddressLines, Data.ShippingAddress);
+                        if (billingAddressLines.Count > 0 || shippingAddressLines.Count > 0)
+                        {
+                            col.Item().PaddingTop(10).Row(addressRow =>
+                            {
+                                addressRow.RelativeItem().Element(container => ComposeAddressBlock(container, "Billing address", billingAddressLines));
+                                addressRow.ConstantItem(26);
+                                addressRow.RelativeItem().Element(container => ComposeAddressBlock(container, "Shipping address", shippingAddressLines));
+                            });
+                        }
                     });
 
-                    row.ConstantItem(210).Column(col =>
+                    row.ConstantItem(150).AlignRight().Table(dateTable =>
                     {
-                        col.Item().Table(dateTable =>
+                        dateTable.ColumnsDefinition(columns =>
                         {
-                            dateTable.ColumnsDefinition(columns =>
-                            {
-                                columns.ConstantColumn(70);
-                                columns.RelativeColumn(1);
-                            });
-
-                            dateTable.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4).Text("Issue Date").FontSize(8).Bold();
-                            dateTable.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight().Text(Data.QuotationDate.ToString("dd MMM yyyy")).FontSize(8);
-
-                            dateTable.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4).Text("Valid Until").FontSize(8).Bold();
-                            dateTable.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight().Text(Data.ValidityEnd.ToString("dd MMM yyyy")).FontSize(8).Bold();
+                            columns.ConstantColumn(64);
+                            columns.RelativeColumn(1);
                         });
 
-                        var shippingAddressLines = GetLines(Data.ShippingAddressLines, Data.ShippingAddress);
-                        if (shippingAddressLines.Count > 0)
-                            col.Item().PaddingTop(8).Element(container => ComposeAddressBlock(container, "Shipping address", shippingAddressLines));
+                        dateTable.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4).Text("Issue Date").FontSize(8).Bold();
+                        dateTable.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight().Text(Data.QuotationDate.ToString("dd MMM yyyy")).FontSize(8);
+
+                        dateTable.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4).Text("Valid Until").FontSize(8).Bold();
+                        dateTable.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight().Text(Data.ValidityEnd.ToString("dd MMM yyyy")).FontSize(8).Bold();
                     });
                 });
 
@@ -117,18 +118,18 @@ public class QuotationDocument : IDocument
                     table.ColumnsDefinition(columns =>
                     {
                         columns.ConstantColumn(22);
-                        columns.RelativeColumn(3.5f);
-                        columns.RelativeColumn(1.6f);
-                        columns.ConstantColumn(32);
-                        columns.ConstantColumn(30);
-                        columns.ConstantColumn(75);
-                        columns.ConstantColumn(75);
+                        columns.RelativeColumn(4.3f);
+                        columns.RelativeColumn(1.4f);
+                        columns.ConstantColumn(28);
+                        columns.ConstantColumn(26);
+                        columns.ConstantColumn(68);
+                        columns.ConstantColumn(70);
                     });
 
                     table.Header(h =>
                     {
                         h.Cell().Element(HeaderCell).AlignCenter().Text("#");
-                        h.Cell().Element(HeaderCell).Text("Material / บริการ");
+                        h.Cell().Element(HeaderCell).Text("Service / บริการ");
                         h.Cell().Element(HeaderCell).Text("Process");
                         h.Cell().Element(HeaderCell).AlignRight().Text("Qty");
                         h.Cell().Element(HeaderCell).Text("Unit");
@@ -142,10 +143,22 @@ public class QuotationDocument : IDocument
                         table.Cell().Element(c => DataCell(c, bg).ShowEntire()).AlignCenter().Text(item.Index.ToString());
                         table.Cell().Element(c => DataCell(c, bg).ShowEntire()).Column(col =>
                         {
-                            col.Item().Text(item.PartName ?? item.MaterialName).Bold();
-                            var detailLines = GetLines(item.DetailLines, item.Notes);
-                            foreach (var detailLine in detailLines)
-                                col.Item().Text(detailLine).FontSize(7).FontColor(Colors.Grey.Darken1);
+                            col.Item().Row(serviceRow =>
+                            {
+                                if (!string.IsNullOrWhiteSpace(item.ThumbnailUrl))
+                                {
+                                    serviceRow.ConstantItem(34).Height(34).Image(item.ThumbnailUrl!);
+                                    serviceRow.ConstantItem(6);
+                                }
+
+                                serviceRow.RelativeItem().Column(serviceCol =>
+                                {
+                                    serviceCol.Item().Text(item.PartName ?? item.MaterialName).Bold();
+                                    var detailLines = GetLines(item.DetailLines, item.Notes);
+                                    foreach (var detailLine in detailLines)
+                                        serviceCol.Item().Text(detailLine).FontSize(7).FontColor(Colors.Grey.Darken1);
+                                });
+                            });
                         });
                         table.Cell().Element(c => DataCell(c, bg).ShowEntire()).Column(col =>
                         {
@@ -182,23 +195,37 @@ public class QuotationDocument : IDocument
 
                 content.Item().PaddingTop(8).AlignRight().Width(260).Column(totals =>
                 {
-                    if (Data.TotalDiscount > 0)
+                    var discountAmount = Data.ManualDiscountAmount > 0 ? Data.ManualDiscountAmount : Data.TotalDiscount;
+                    if (discountAmount > 0 || Data.ShippingCost > 0)
                     {
                         totals.Item().Row(r =>
                         {
-                            r.RelativeItem().Text("Subtotal:").FontSize(9);
+                            r.RelativeItem().Text("Items subtotal:").FontSize(9);
                             r.ConstantItem(100).AlignRight().Text(Data.SubtotalBeforeDiscount.ToString("N2")).FontSize(9);
                         });
+                    }
+
+                    if (discountAmount > 0)
+                    {
                         totals.Item().Row(r =>
                         {
                             r.RelativeItem().Text("Discount:").FontSize(9);
-                            r.ConstantItem(100).AlignRight().Text($"−{Data.TotalDiscount:N2}").FontSize(9);
+                            r.ConstantItem(100).AlignRight().Text($"−{discountAmount:N2}").FontSize(9);
+                        });
+                    }
+
+                    if (Data.ShippingCost > 0)
+                    {
+                        totals.Item().Row(r =>
+                        {
+                            r.RelativeItem().Text("Shipping:").FontSize(9);
+                            r.ConstantItem(100).AlignRight().Text(Data.ShippingCost.ToString("N2")).FontSize(9);
                         });
                     }
 
                     totals.Item().Row(r =>
                     {
-                        r.RelativeItem().Text("Subtotal (ex. VAT):").FontSize(9);
+                        r.RelativeItem().Text("Subtotal:").FontSize(9);
                         r.ConstantItem(100).AlignRight().Text(Data.Subtotal.ToString("N2")).FontSize(9);
                     });
 
@@ -233,7 +260,7 @@ public class QuotationDocument : IDocument
                 {
                     content.Item().PaddingTop(12).Column(col =>
                     {
-                        col.Item().Text("เงื่อนไขพิเศษ / SPECIAL TERMS:").Bold().FontSize(8).FontColor(Colors.Grey.Darken1);
+                        col.Item().Text("เงื่อนไข / TERMS").Bold().FontSize(8).FontColor(Colors.Grey.Darken1);
                         col.Item().PaddingTop(3).Text(Data.SpecialTerms).FontSize(9);
                     });
                 }
@@ -247,8 +274,7 @@ public class QuotationDocument : IDocument
                     });
                 }
 
-                content.Item().ExtendVertical();
-                content.Item().PaddingBottom(10).ShowEntire().Row(row =>
+                content.Item().ExtendVertical().AlignBottom().PaddingBottom(4).ShowEntire().Row(row =>
                 {
                     row.RelativeItem().Element(container => SignatureBox(container, "ผู้เสนอราคา / Quoted by"));
                     row.ConstantItem(40);
@@ -300,8 +326,14 @@ public class QuotationDocument : IDocument
 
         container.Column(col =>
         {
-            foreach (var line in lines)
-                col.Item().Text(line).FontSize(9).Bold();
+            for (var i = 0; i < lines.Count; i++)
+            {
+                var text = col.Item().Text(lines[i]).FontSize(9);
+                if (Data.CustomerType == "Corporate" && i == 0)
+                    text.Bold();
+                else
+                    text.FontColor(Colors.Grey.Darken1);
+            }
         });
     }
 
@@ -310,19 +342,28 @@ public class QuotationDocument : IDocument
         var lines = new List<string>();
         var branch = string.IsNullOrEmpty(Data.CustomerBranch) ? string.Empty : $" ({Data.CustomerBranch})";
 
-        if (!string.IsNullOrEmpty(Data.ContactPerson))
-            lines.Add(string.IsNullOrEmpty(Data.CustomerPhone) ? Data.ContactPerson : $"{Data.ContactPerson} ({Data.CustomerPhone})");
-
         lines.Add(Data.CustomerType == "Corporate" ? $"{Data.CustomerName}{branch}" : Data.CustomerName);
 
-        if (Data.CustomerType != "Corporate" && !string.IsNullOrEmpty(Data.CustomerPhone))
+        if (!string.IsNullOrEmpty(Data.ContactPerson))
+        {
+            var contact = string.IsNullOrEmpty(Data.CustomerPhone)
+                ? Data.ContactPerson
+                : $"{Data.ContactPerson} ({Data.CustomerPhone})";
+            lines.Add(Data.CustomerType == "Corporate" ? $"Attn: {contact}" : contact);
+        }
+        else if (!string.IsNullOrEmpty(Data.CustomerPhone))
+        {
             lines.Add(Data.CustomerPhone);
+        }
 
         return lines;
     }
 
     private static void ComposeAddressBlock(IContainer container, string title, IReadOnlyList<string> addressLines)
     {
+        if (addressLines.Count == 0)
+            return;
+
         container.Column(col =>
         {
             col.Item().Text(title).FontSize(7).Bold().FontColor(Colors.Grey.Darken1);
@@ -347,8 +388,8 @@ public class QuotationDocument : IDocument
         container.Column(col =>
         {
             col.Item().Text(title).FontSize(9).FontColor(Colors.Grey.Darken1);
-            col.Item().PaddingTop(60).LineHorizontal(1).LineColor(Colors.Grey.Medium);
-            col.Item().PaddingTop(10).AlignCenter().Text("Signature & Date").FontSize(8);
+            col.Item().PaddingTop(42).LineHorizontal(1).LineColor(Colors.Grey.Medium);
+            col.Item().PaddingTop(6).AlignCenter().Text("Signature & Date").FontSize(8);
         });
     }
 
