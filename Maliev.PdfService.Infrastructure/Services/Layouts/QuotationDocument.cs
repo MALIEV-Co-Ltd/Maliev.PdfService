@@ -1,8 +1,9 @@
+using System.IO;
+using System.Net.Http;
 using Maliev.PdfService.Api.Models.Data;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using System.IO;
 
 namespace Maliev.PdfService.Api.Services.Layouts;
 
@@ -12,9 +13,17 @@ namespace Maliev.PdfService.Api.Services.Layouts;
 /// </summary>
 public class QuotationDocument : IDocument
 {
+    private const int MaxThumbnailBytes = 2 * 1024 * 1024;
     private const string QuotationValidityNotice =
         "This quotation is valid until the specified date. Prices are subject to change after the validity period. " +
         "E&OE. (Errors and Omissions Excepted)";
+
+    private static readonly HttpClient ThumbnailHttpClient = new()
+    {
+        Timeout = TimeSpan.FromSeconds(2)
+    };
+
+    private readonly Dictionary<string, byte[]?> _thumbnailImageCache = new(StringComparer.Ordinal);
 
     /// <summary>
     /// The quotation data.
@@ -145,9 +154,8 @@ public class QuotationDocument : IDocument
                         {
                             col.Item().Row(serviceRow =>
                             {
-                                if (!string.IsNullOrWhiteSpace(item.ThumbnailUrl))
+                                if (TryComposeThumbnail(serviceRow, item.ThumbnailUrl))
                                 {
-                                    serviceRow.ConstantItem(34).Height(34).Image(item.ThumbnailUrl!);
                                     serviceRow.ConstantItem(6);
                                 }
 
@@ -298,6 +306,92 @@ public class QuotationDocument : IDocument
                 });
             });
         });
+    }
+
+    private bool TryComposeThumbnail(RowDescriptor row, string? thumbnailReference)
+    {
+        var thumbnailBytes = TryGetThumbnailBytes(thumbnailReference);
+        if (thumbnailBytes is not { Length: > 0 })
+            return false;
+
+        try
+        {
+            row.ConstantItem(34).Height(34).Image(thumbnailBytes);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private byte[]? TryGetThumbnailBytes(string? thumbnailReference)
+    {
+        if (string.IsNullOrWhiteSpace(thumbnailReference))
+            return null;
+
+        if (_thumbnailImageCache.TryGetValue(thumbnailReference, out var cachedBytes))
+            return cachedBytes;
+
+        var bytes = LoadThumbnailBytes(thumbnailReference);
+        _thumbnailImageCache[thumbnailReference] = bytes;
+        return bytes;
+    }
+
+    private static byte[]? LoadThumbnailBytes(string thumbnailReference)
+    {
+        try
+        {
+            if (Uri.TryCreate(thumbnailReference, UriKind.Absolute, out var uri)
+                && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+            {
+                return LoadRemoteThumbnailBytes(uri);
+            }
+
+            if (!File.Exists(thumbnailReference))
+                return null;
+
+            var fileInfo = new FileInfo(thumbnailReference);
+            if (fileInfo.Length is <= 0 or > MaxThumbnailBytes)
+                return null;
+
+            return File.ReadAllBytes(thumbnailReference);
+        }
+        catch (Exception ex) when (ex is HttpRequestException
+            or IOException
+            or NotSupportedException
+            or OperationCanceledException
+            or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    private static byte[]? LoadRemoteThumbnailBytes(Uri uri)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+        using var response = ThumbnailHttpClient.Send(request, HttpCompletionOption.ResponseHeadersRead);
+        if (!response.IsSuccessStatusCode)
+            return null;
+
+        var contentLength = response.Content.Headers.ContentLength;
+        if (contentLength is <= 0 or > MaxThumbnailBytes)
+            return null;
+
+        using var stream = response.Content.ReadAsStream();
+        using var buffer = new MemoryStream();
+        var readBuffer = new byte[81920];
+
+        int bytesRead;
+        while ((bytesRead = stream.Read(readBuffer, 0, readBuffer.Length)) > 0)
+        {
+            if (buffer.Length + bytesRead > MaxThumbnailBytes)
+                return null;
+
+            buffer.Write(readBuffer, 0, bytesRead);
+        }
+
+        return buffer.Length > 0 ? buffer.ToArray() : null;
     }
 
     private static IContainer HeaderCell(IContainer container)

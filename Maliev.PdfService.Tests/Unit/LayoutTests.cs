@@ -129,6 +129,43 @@ public class LayoutTests
     }
 
     /// <summary>
+    /// Tests that unavailable remote quotation thumbnails are skipped instead of failing PDF generation.
+    /// </summary>
+    [Fact]
+    public void QuotationDocument_GeneratesPdf_WhenRemoteThumbnailCannotBeLoaded()
+    {
+        // Arrange
+        var document = new QuotationDocument(new QuotationData
+        {
+            QuotationNumber = "Q-REMOTE-THUMBNAIL",
+            CustomerName = "Acme Thailand",
+            Items =
+            [
+                new QuotationItemData
+                {
+                    Index = 1,
+                    MaterialName = "PLA",
+                    PartName = "bracket.step",
+                    ManufacturingProcess = "3D Printing (FDM)",
+                    ThumbnailUrl = "https://127.0.0.1:9/missing-thumbnail.webp",
+                    Quantity = 1,
+                    UnitPrice = 100,
+                    LineTotal = 100
+                }
+            ],
+            Subtotal = 100,
+            TotalAmount = 100
+        });
+
+        // Act
+        var pdf = document.GeneratePdf();
+
+        // Assert
+        Assert.NotNull(pdf);
+        Assert.NotEmpty(pdf);
+    }
+
+    /// <summary>
     /// Tests that QuotationDocument loads embedded layout resources independent of the current working directory.
     /// </summary>
     [Fact]
