@@ -109,6 +109,15 @@ public class QuotationData
     /// <summary>Summary of changes from previous version (if revision).</summary>
     public string? ChangeSummary { get; set; }
 
+    /// <summary>Name of the employee who generated or issued the quotation.</summary>
+    public string? QuotedByName { get; set; }
+
+    /// <summary>Email of the employee who generated or issued the quotation.</summary>
+    public string? QuotedByEmail { get; set; }
+
+    /// <summary>UTC timestamp when the quotation was generated or issued.</summary>
+    public DateTime? QuotedAt { get; set; }
+
     // ─── Line Items & Discounts ───────────────────────────────────────────
     /// <summary>The list of line items in the quotation.</summary>
     public List<QuotationItemData> Items { get; set; } = new();

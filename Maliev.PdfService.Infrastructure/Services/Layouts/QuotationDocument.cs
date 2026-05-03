@@ -240,7 +240,7 @@ public class QuotationDocument : IDocument
 
                 content.Item().ExtendVertical().AlignBottom().PaddingBottom(4).ShowEntire().Row(row =>
                 {
-                    row.RelativeItem().Element(container => SignatureBox(container, "ผู้เสนอราคา / Quoted by"));
+                    row.RelativeItem().Element(QuotedByBlock);
                     row.ConstantItem(40);
                     row.RelativeItem().Element(container => SignatureBox(container, "ผู้อนุมัติ / Approved by"));
                 });
@@ -464,6 +464,23 @@ public class QuotationDocument : IDocument
         return fallback.Split(["\r\n", "\n", "\r", " | "], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
     }
 
+    private void QuotedByBlock(IContainer container)
+    {
+        var name = FirstNonEmpty(Data.QuotedByName, Data.QuotedByEmail, "MALIEV");
+
+        container.Column(col =>
+        {
+            col.Item().Text("ผู้เสนอราคา / Quoted by").FontSize(9).FontColor(Colors.Grey.Darken1);
+            col.Item().PaddingTop(8).Text(name).Bold().FontSize(10);
+
+            if (!string.IsNullOrWhiteSpace(Data.QuotedByEmail) && !string.Equals(Data.QuotedByEmail, name, StringComparison.OrdinalIgnoreCase))
+                col.Item().PaddingTop(2).Text(Data.QuotedByEmail).FontSize(8).FontColor(Colors.Grey.Darken1);
+
+            if (Data.QuotedAt.HasValue)
+                col.Item().PaddingTop(2).Text($"Quoted on: {Data.QuotedAt.Value:dd MMM yyyy HH:mm}").FontSize(8).FontColor(Colors.Grey.Darken1);
+        });
+    }
+
     private static void SignatureBox(IContainer container, string title)
     {
         container.Column(col =>
@@ -473,6 +490,9 @@ public class QuotationDocument : IDocument
             col.Item().PaddingTop(6).AlignCenter().Text("Signature & Date").FontSize(8);
         });
     }
+
+    private static string FirstNonEmpty(params string?[] values) =>
+        values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
 
     private static string ReadResourceText(string fileName)
     {

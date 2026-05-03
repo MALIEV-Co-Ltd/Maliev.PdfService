@@ -177,6 +177,46 @@ public class LayoutTests
     }
 
     /// <summary>
+    /// Tests that QuotationDocument generates a PDF with automatic quoted-by metadata.
+    /// </summary>
+    [Fact]
+    public void QuotationDocument_GeneratesPdf_WithQuotedByMetadata()
+    {
+        // Arrange
+        var document = new QuotationDocument(new QuotationData
+        {
+            QuotationNumber = "Q-QUOTED-BY",
+            CustomerName = "Acme Thailand",
+            QuotedByName = "Alex Kim",
+            QuotedByEmail = "alex.kim@maliev.com",
+            QuotedAt = new DateTime(2026, 5, 3, 8, 30, 0, DateTimeKind.Utc),
+            Items =
+            [
+                new QuotationItemData
+                {
+                    Index = 1,
+                    PartName = "bracket.step",
+                    MaterialName = "PLA",
+                    ManufacturingProcess = "3D Printing (FDM)",
+                    Quantity = 1,
+                    UnitPrice = 100,
+                    LineTotal = 100
+                }
+            ],
+            Subtotal = 100,
+            TaxAmount = 7,
+            TotalAmount = 107
+        });
+
+        // Act
+        var pdf = document.GeneratePdf();
+
+        // Assert
+        Assert.NotNull(pdf);
+        Assert.NotEmpty(pdf);
+    }
+
+    /// <summary>
     /// Tests that unavailable remote quotation thumbnails are skipped instead of failing PDF generation.
     /// </summary>
     [Fact]
