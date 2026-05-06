@@ -166,7 +166,7 @@ public class QuotationDocument : IDocument
                                     serviceCol.Item().Text(item.PartName ?? item.MaterialName).Bold();
                                     var detailLines = GetLines(item.DetailLines, null);
                                     foreach (var detailLine in detailLines)
-                                        serviceCol.Item().Text(detailLine).FontSize(7).FontColor(Colors.Grey.Darken1).LineHeight(1.25f);
+                                        ComposeServiceDetailLine(serviceCol, detailLine);
 
                                     var noteLines = GetLines([], item.Notes);
                                     foreach (var noteLine in noteLines)
@@ -274,6 +274,42 @@ public class QuotationDocument : IDocument
                 });
             });
         });
+    }
+
+    private static void ComposeServiceDetailLine(ColumnDescriptor serviceCol, string detailLine)
+    {
+        if (TryParseDrawingDetailLine(detailLine, out var drawings))
+        {
+            serviceCol.Item().Text("Drawings:").FontSize(7).Bold().FontColor(Colors.Grey.Darken1).LineHeight(1.25f);
+            foreach (var drawing in drawings)
+                serviceCol.Item().PaddingLeft(6).Text($"- {drawing}").FontSize(7).FontColor(Colors.Grey.Darken1).LineHeight(1.25f);
+
+            return;
+        }
+
+        serviceCol.Item().Text(detailLine).FontSize(7).FontColor(Colors.Grey.Darken1).LineHeight(1.25f);
+    }
+
+    private static bool TryParseDrawingDetailLine(string detailLine, out List<string> drawings)
+    {
+        drawings = [];
+        var separatorIndex = detailLine.IndexOf(':', StringComparison.Ordinal);
+        if (separatorIndex <= 0)
+            return false;
+
+        var label = detailLine[..separatorIndex].Trim();
+        if (!string.Equals(label, "Drawing", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(label, "Drawings", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        drawings = detailLine[(separatorIndex + 1)..]
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(drawing => !string.IsNullOrWhiteSpace(drawing))
+            .ToList();
+
+        return drawings.Count > 0;
     }
 
     private bool TryComposeThumbnail(RowDescriptor row, string? thumbnailReference)
