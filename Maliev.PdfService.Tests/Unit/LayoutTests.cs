@@ -171,6 +171,49 @@ public class LayoutTests
     }
 
     /// <summary>
+    /// Tests that quotation item manufacturing notes are labeled separately from configuration details.
+    /// </summary>
+    [Fact]
+    public void QuotationDocument_GeneratesPdf_WithLabeledManufacturingNote()
+    {
+        // Arrange
+        var document = new QuotationDocument(new QuotationData
+        {
+            QuotationNumber = "Q-NOTE",
+            CustomerName = "Acme Thailand",
+            Items =
+            [
+                new QuotationItemData
+                {
+                    Index = 1,
+                    PartName = "bracket.step",
+                    MaterialName = "Aluminum 6061-T6",
+                    ManufacturingProcess = "CNC Milling",
+                    DetailLines =
+                    [
+                        "Bounding box: 43 x 22 x 43 mm",
+                        "Tolerance: Medium (ISO 2768-m)",
+                    ],
+                    Notes = "test 13",
+                    Quantity = 1,
+                    QuantityUnit = "pcs",
+                    UnitPrice = 100,
+                    LineTotal = 100
+                }
+            ],
+            Subtotal = 100,
+            TotalAmount = 100
+        });
+
+        // Act
+        var pages = ExtractPageText(document.GeneratePdf());
+        var text = string.Join(Environment.NewLine, pages);
+
+        // Assert
+        Assert.Contains("Note: test 13", text, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// Tests that QuotationDocument generates the compact summary when shipping and discount are zero and shipping address is omitted.
     /// </summary>
     [Fact]

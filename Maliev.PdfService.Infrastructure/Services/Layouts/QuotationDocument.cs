@@ -164,9 +164,18 @@ public class QuotationDocument : IDocument
                                 serviceRow.RelativeItem().Column(serviceCol =>
                                 {
                                     serviceCol.Item().Text(item.PartName ?? item.MaterialName).Bold();
-                                    var detailLines = GetLines(item.DetailLines, item.Notes);
+                                    var detailLines = GetLines(item.DetailLines, null);
                                     foreach (var detailLine in detailLines)
                                         serviceCol.Item().Text(detailLine).FontSize(7).FontColor(Colors.Grey.Darken1).LineHeight(1.25f);
+
+                                    var noteLines = GetLines([], item.Notes);
+                                    foreach (var noteLine in noteLines)
+                                    {
+                                        var displayNote = noteLine.StartsWith("Note:", StringComparison.OrdinalIgnoreCase)
+                                            ? noteLine
+                                            : $"Note: {noteLine}";
+                                        serviceCol.Item().PaddingTop(4).Text(displayNote).FontSize(7).FontColor(Colors.Grey.Darken2).LineHeight(1.25f);
+                                    }
                                 });
                             });
                         });
