@@ -323,6 +323,55 @@ public class LayoutTests
     }
 
     /// <summary>
+    /// Tests that multi-line note detail entries are not duplicated outside the note block.
+    /// </summary>
+    [Fact]
+    public void QuotationDocument_GeneratesPdf_WithMultilineNoteDetail_RemovesDuplicatedDetailBlock()
+    {
+        // Arrange
+        var document = new QuotationDocument(new QuotationData
+        {
+            QuotationNumber = "Q-MULTILINE-NOTE",
+            CustomerName = "Acme Thailand",
+            Items =
+            [
+                new QuotationItemData
+                {
+                    Index = 1,
+                    PartName = "d11-12.stp",
+                    MaterialName = "PLA",
+                    ManufacturingProcess = "3D Printing (FDM)",
+                    DetailLines =
+                    [
+                        "Bounding box: 38 x 22 x 38 mm",
+                        "Surface finish: Sanded",
+                        "Tolerance: FDM Standard +-0.3mm",
+                        "Inspection: Standard",
+                        "gbnfgc\r\nbsrtbsrtb\r\n\r\nsrtbsrtbst",
+                    ],
+                    Notes = "Note: gbnfgc\r\nNote: bsrtbsrtb\r\nNote: srtbsrtbst",
+                    Quantity = 6,
+                    QuantityUnit = "pcs",
+                    UnitPrice = 100,
+                    LineTotal = 600
+                }
+            ],
+            Subtotal = 600,
+            TotalAmount = 600
+        });
+
+        // Act
+        var pages = ExtractPageText(document.GeneratePdf());
+        var text = string.Join(Environment.NewLine, pages);
+
+        // Assert
+        Assert.Equal(1, CountOccurrences(text, "Note:"));
+        Assert.Equal(1, CountOccurrences(text, "gbnfgc"));
+        Assert.Equal(1, CountOccurrences(text, "bsrtbsrtb"));
+        Assert.Equal(1, CountOccurrences(text, "srtbsrtbst"));
+    }
+
+    /// <summary>
     /// Tests that quotation drawing detail lists are rendered as separate bullet points.
     /// </summary>
     [Fact]

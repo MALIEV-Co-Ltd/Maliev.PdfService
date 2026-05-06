@@ -850,13 +850,17 @@ public class QuotationDocument : IDocument
     private static List<string> GetLines(IReadOnlyList<string> lines, string? fallback)
     {
         if (lines.Count > 0)
-            return lines.Where(line => !string.IsNullOrWhiteSpace(line)).ToList();
+            return lines.SelectMany(SplitTextLines).ToList();
 
         if (string.IsNullOrWhiteSpace(fallback))
             return [];
 
-        return fallback.Split(["\r\n", "\n", "\r", " | "], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        return SplitTextLines(fallback).ToList();
     }
+
+    private static IEnumerable<string> SplitTextLines(string value) =>
+        value.Split(["\r\n", "\n", "\r", " | "], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(line => !string.IsNullOrWhiteSpace(line));
 
     private void QuotedByBlock(IContainer container)
     {
