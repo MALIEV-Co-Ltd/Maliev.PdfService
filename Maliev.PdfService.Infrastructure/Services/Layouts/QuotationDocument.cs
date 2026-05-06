@@ -18,6 +18,19 @@ public class QuotationDocument : IDocument
         "This quotation is valid until the specified date. Prices are subject to change after the validity period. " +
         "E&OE. (Errors and Omissions Excepted)";
 
+    private static readonly string[] ConfigurationDetailLabels =
+    [
+        "Bounding box",
+        "Surface finish",
+        "Tolerance",
+        "Inspection",
+        "Color",
+        "Finish",
+        "Infill",
+        "Layer height",
+        "Surface roughness"
+    ];
+
     private static readonly HttpClient ThumbnailHttpClient = new()
     {
         Timeout = TimeSpan.FromSeconds(2)
@@ -165,16 +178,24 @@ public class QuotationDocument : IDocument
                                 {
                                     serviceCol.Item().Text(item.PartName ?? item.MaterialName).Bold();
                                     var detailLines = GetLines(item.DetailLines, null);
-                                    foreach (var detailLine in detailLines)
-                                        ComposeServiceDetailLine(serviceCol, detailLine);
-
                                     var noteLines = GetLines([], item.Notes);
+                                    var normalizedNoteLines = noteLines
+                                        .Select(NormalizeManufacturingNoteText)
+                                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                                    foreach (var detailLine in detailLines)
+                                    {
+                                        if (IsManufacturingNoteDetailLine(detailLine, normalizedNoteLines))
+                                            continue;
+
+                                        ComposeServiceDetailLine(serviceCol, detailLine);
+                                    }
+
                                     foreach (var noteLine in noteLines)
                                     {
-                                        var displayNote = noteLine.StartsWith("Note:", StringComparison.OrdinalIgnoreCase)
-                                            ? noteLine
-                                            : $"Note: {noteLine}";
-                                        serviceCol.Item().PaddingTop(4).Text(displayNote).FontSize(7).FontColor(Colors.Grey.Darken2).LineHeight(1.25f);
+                                        if (!IsManufacturingNoteLine(noteLine))
+                                            continue;
+
+                                        ComposeManufacturingNoteLine(serviceCol, noteLine);
                                     }
                                 });
                             });
@@ -290,21 +311,58 @@ public class QuotationDocument : IDocument
         serviceCol.Item().Text(detailLine).FontSize(7).FontColor(Colors.Grey.Darken1).LineHeight(1.25f);
     }
 
-    private static bool TryParseDrawingDetailLine(string detailLine, out List<string> drawings)
+    private static void ComposeManufacturingNoteLine(ColumnDescriptor serviceCol, string noteLine)
     {
-        drawings = [];
-        var separatorIndex = detailLine.IndexOf(':', StringComparison.Ordinal);
+        var displayNote = noteLine.StartsWith("Note:", StringComparison.OrdinalIgnoreCase)
+            ? noteLine
+            : $"Note: {noteLine}";
+
+        serviceCol.Item().PaddingTop(4).Text(displayNote).FontSize(7).FontColor(Colors.Grey.Darken2).LineHeight(1.25f);
+    }
+
+    private static bool IsManufacturingNoteDetailLine(string detailLine, HashSet<string> normalizedNoteLines) =>
+        normalizedNoteLines.Contains(NormalizeManufacturingNoteText(detailLine)) &&
+        IsManufacturingNoteLine(detailLine);
+
+    private static bool IsManufacturingNoteLine(string noteLine) =>
+        !IsConfigurationDetailLine(noteLine) &&
+        !TryParseDrawingDetailLine(noteLine, out _);
+
+    private static bool IsConfigurationDetailLine(string detailLine)
+    {
+        var normalizedLine = NormalizeManufacturingNoteText(detailLine);
+        var separatorIndex = normalizedLine.IndexOf(':', StringComparison.Ordinal);
         if (separatorIndex <= 0)
             return false;
 
-        var label = detailLine[..separatorIndex].Trim();
+        var label = normalizedLine[..separatorIndex].Trim();
+        return ConfigurationDetailLabels.Contains(label, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizeManufacturingNoteText(string value)
+    {
+        var normalizedValue = value.Trim();
+        return normalizedValue.StartsWith("Note:", StringComparison.OrdinalIgnoreCase)
+            ? normalizedValue["Note:".Length..].Trim()
+            : normalizedValue;
+    }
+
+    private static bool TryParseDrawingDetailLine(string detailLine, out List<string> drawings)
+    {
+        drawings = [];
+        var normalizedLine = NormalizeManufacturingNoteText(detailLine);
+        var separatorIndex = normalizedLine.IndexOf(':', StringComparison.Ordinal);
+        if (separatorIndex <= 0)
+            return false;
+
+        var label = normalizedLine[..separatorIndex].Trim();
         if (!string.Equals(label, "Drawing", StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(label, "Drawings", StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
 
-        drawings = detailLine[(separatorIndex + 1)..]
+        drawings = normalizedLine[(separatorIndex + 1)..]
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Where(drawing => !string.IsNullOrWhiteSpace(drawing))
             .ToList();

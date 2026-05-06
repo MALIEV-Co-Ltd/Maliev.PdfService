@@ -214,6 +214,61 @@ public class LayoutTests
     }
 
     /// <summary>
+    /// Tests that repeated configuration details are not labeled as manufacturing notes.
+    /// </summary>
+    [Fact]
+    public void QuotationDocument_GeneratesPdf_WithRepeatedDetailsInNotes_LabelsOnlyManufacturingNote()
+    {
+        // Arrange
+        var document = new QuotationDocument(new QuotationData
+        {
+            QuotationNumber = "Q-NOTE-CONFIG",
+            CustomerName = "Acme Thailand",
+            Items =
+            [
+                new QuotationItemData
+                {
+                    Index = 1,
+                    PartName = "systemboard.stl",
+                    MaterialName = "ABS",
+                    ManufacturingProcess = "3D Printing (FDM)",
+                    DetailLines =
+                    [
+                        "Bounding box: 12 x 12 x 7.16 mm",
+                        "Surface finish: As-printed",
+                        "Tolerance: FDM Standard +-0.3mm",
+                        "Inspection: Standard",
+                        "gawewev",
+                    ],
+                    Notes = "Bounding box: 12 x 12 x 7.16 mm | Surface finish: As-printed | Tolerance: FDM Standard +-0.3mm | Inspection: Standard | gawewev",
+                    Quantity = 4,
+                    QuantityUnit = "pcs",
+                    UnitPrice = 313.04m,
+                    LineTotal = 1252.15m
+                }
+            ],
+            Subtotal = 1252.15m,
+            TotalAmount = 1252.15m
+        });
+
+        // Act
+        var pages = ExtractPageText(document.GeneratePdf());
+        var text = string.Join(Environment.NewLine, pages);
+
+        // Assert
+        Assert.Contains("Bounding box: 12 x 12 x 7.16 mm", text, StringComparison.Ordinal);
+        Assert.Contains("Surface finish: As-printed", text, StringComparison.Ordinal);
+        Assert.Contains("Tolerance: FDM Standard +-0.3mm", text, StringComparison.Ordinal);
+        Assert.Contains("Inspection: Standard", text, StringComparison.Ordinal);
+        Assert.Contains("Note: gawewev", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Note: Bounding box:", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Note: Surface finish:", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Note: Tolerance:", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Note: Inspection:", text, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(text, "gawewev"));
+    }
+
+    /// <summary>
     /// Tests that quotation drawing detail lists are rendered as separate bullet points.
     /// </summary>
     [Fact]
@@ -511,5 +566,18 @@ public class LayoutTests
         using var document = PdfDocument.Open(stream);
 
         return document.GetPages().Select(page => page.Text).ToList();
+    }
+
+    private static int CountOccurrences(string value, string searchText)
+    {
+        var count = 0;
+        var startIndex = 0;
+        while ((startIndex = value.IndexOf(searchText, startIndex, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            startIndex += searchText.Length;
+        }
+
+        return count;
     }
 }
