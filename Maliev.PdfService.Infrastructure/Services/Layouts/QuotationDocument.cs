@@ -205,13 +205,12 @@ public class QuotationDocument : IDocument
                                         ComposeServiceDetailLine(serviceCol, detailLine);
                                     }
 
-                                    foreach (var noteLine in noteLines)
-                                    {
-                                        if (!IsManufacturingNoteLine(noteLine))
-                                            continue;
-
-                                        ComposeManufacturingNoteLine(serviceCol, noteLine);
-                                    }
+                                    var manufacturingNoteLines = noteLines
+                                        .Where(IsManufacturingNoteLine)
+                                        .Select(NormalizeManufacturingNoteText)
+                                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                                        .ToList();
+                                    ComposeManufacturingNoteLines(serviceCol, manufacturingNoteLines);
                                 });
                             });
                         });
@@ -326,13 +325,20 @@ public class QuotationDocument : IDocument
         serviceCol.Item().Text(detailLine).FontSize(7).FontColor(Colors.Grey.Darken1).LineHeight(1.25f);
     }
 
-    private static void ComposeManufacturingNoteLine(ColumnDescriptor serviceCol, string noteLine)
+    private static void ComposeManufacturingNoteLines(ColumnDescriptor serviceCol, IReadOnlyList<string> noteLines)
     {
-        var displayNote = noteLine.StartsWith("Note:", StringComparison.OrdinalIgnoreCase)
-            ? noteLine
-            : $"Note: {noteLine}";
+        if (noteLines.Count == 0)
+            return;
 
-        serviceCol.Item().PaddingTop(4).Text(displayNote).FontSize(7).FontColor(Colors.Grey.Darken2).LineHeight(1.25f);
+        if (noteLines.Count == 1)
+        {
+            serviceCol.Item().PaddingTop(4).Text($"Note: {noteLines[0]}").FontSize(7).FontColor(Colors.Grey.Darken2).LineHeight(1.25f);
+            return;
+        }
+
+        serviceCol.Item().PaddingTop(4).Text("Note:").FontSize(7).Bold().FontColor(Colors.Grey.Darken2).LineHeight(1.25f);
+        foreach (var noteLine in noteLines)
+            serviceCol.Item().PaddingLeft(6).Text(noteLine).FontSize(7).FontColor(Colors.Grey.Darken2).LineHeight(1.25f);
     }
 
     private static bool IsManufacturingNoteDetailLine(string detailLine, HashSet<string> normalizedNoteLines) =>
@@ -357,9 +363,11 @@ public class QuotationDocument : IDocument
     private static string NormalizeManufacturingNoteText(string value)
     {
         var normalizedValue = value.Trim();
-        return normalizedValue.StartsWith("Note:", StringComparison.OrdinalIgnoreCase)
+        normalizedValue = normalizedValue.StartsWith("Note:", StringComparison.OrdinalIgnoreCase)
             ? normalizedValue["Note:".Length..].Trim()
             : normalizedValue;
+
+        return string.Join(' ', normalizedValue.Split(default(string[]), StringSplitOptions.RemoveEmptyEntries));
     }
 
     private static bool TryParseDrawingDetailLine(string detailLine, out List<string> drawings)
