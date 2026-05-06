@@ -1,3 +1,6 @@
+using System.Buffers.Binary;
+using System.IO.Compression;
+using System.Reflection;
 using Maliev.PdfService.Api.Models.Data;
 using Maliev.PdfService.Api.Services.Layouts;
 using QuestPDF.Fluent;
@@ -439,6 +442,38 @@ public class LayoutTests
     }
 
     /// <summary>
+    /// Tests that quotation thumbnail preparation removes edge-connected white PNG backgrounds.
+    /// </summary>
+    [Fact]
+    public void QuotationDocument_PreparesThumbnailBytes_RemovesWhitePngBackground()
+    {
+        // Arrange
+        var png = CreateRgbaPng(3, 3, (x, y) => x == 1 && y == 1
+            ? ((byte)120, (byte)120, (byte)120, (byte)255)
+            : ((byte)255, (byte)255, (byte)255, (byte)255));
+
+        var prepareMethod = typeof(QuotationDocument).GetMethod(
+            "PrepareThumbnailBytes",
+            BindingFlags.Static | BindingFlags.NonPublic);
+
+        // Act
+        Assert.NotNull(prepareMethod);
+        var prepared = Assert.IsType<byte[]>(prepareMethod.Invoke(null, [png]));
+        var rgba = DecodeTestRgbaPng(prepared, out var width, out var height);
+
+        // Assert
+        Assert.Equal(3, width);
+        Assert.Equal(3, height);
+        Assert.Equal(0, rgba[3]);
+
+        var centerPixel = ((1 * width) + 1) * 4;
+        Assert.Equal(120, rgba[centerPixel]);
+        Assert.Equal(120, rgba[centerPixel + 1]);
+        Assert.Equal(120, rgba[centerPixel + 2]);
+        Assert.Equal(255, rgba[centerPixel + 3]);
+    }
+
+    /// <summary>
     /// Tests that QuotationDocument loads embedded layout resources independent of the current working directory.
     /// </summary>
     [Fact]
@@ -579,5 +614,109 @@ public class LayoutTests
         }
 
         return count;
+    }
+
+    private static byte[] CreateRgbaPng(int width, int height, Func<int, int, (byte Red, byte Green, byte Blue, byte Alpha)> pixelFactory)
+    {
+        using var imageData = new MemoryStream();
+        using (var zlib = new ZLibStream(imageData, CompressionLevel.Optimal, leaveOpen: true))
+        {
+            for (var y = 0; y < height; y++)
+            {
+                zlib.WriteByte(0);
+                for (var x = 0; x < width; x++)
+                {
+                    var pixel = pixelFactory(x, y);
+                    zlib.WriteByte(pixel.Red);
+                    zlib.WriteByte(pixel.Green);
+                    zlib.WriteByte(pixel.Blue);
+                    zlib.WriteByte(pixel.Alpha);
+                }
+            }
+        }
+
+        using var png = new MemoryStream();
+        png.Write([137, 80, 78, 71, 13, 10, 26, 10]);
+
+        Span<byte> header = stackalloc byte[13];
+        BinaryPrimitives.WriteInt32BigEndian(header, width);
+        BinaryPrimitives.WriteInt32BigEndian(header[4..], height);
+        header[8] = 8;
+        header[9] = 6;
+        WriteTestPngChunk(png, "IHDR"u8, header);
+        WriteTestPngChunk(png, "IDAT"u8, imageData.ToArray());
+        WriteTestPngChunk(png, "IEND"u8, []);
+
+        return png.ToArray();
+    }
+
+    private static byte[] DecodeTestRgbaPng(byte[] png, out int width, out int height)
+    {
+        width = BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(16, 4));
+        height = BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(20, 4));
+
+        using var idat = new MemoryStream();
+        var offset = 8;
+        while (offset < png.Length)
+        {
+            var length = BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(offset, 4));
+            var type = png.AsSpan(offset + 4, 4);
+            if (type.SequenceEqual("IDAT"u8))
+                idat.Write(png, offset + 8, length);
+
+            if (type.SequenceEqual("IEND"u8))
+                break;
+
+            offset += length + 12;
+        }
+
+        idat.Position = 0;
+        using var zlib = new ZLibStream(idat, CompressionMode.Decompress);
+        using var decompressed = new MemoryStream();
+        zlib.CopyTo(decompressed);
+
+        var bytes = decompressed.ToArray();
+        var rgba = new byte[width * height * 4];
+        var sourceOffset = 0;
+        var targetOffset = 0;
+        for (var y = 0; y < height; y++)
+        {
+            Assert.Equal(0, bytes[sourceOffset++]);
+            Array.Copy(bytes, sourceOffset, rgba, targetOffset, width * 4);
+            sourceOffset += width * 4;
+            targetOffset += width * 4;
+        }
+
+        return rgba;
+    }
+
+    private static void WriteTestPngChunk(Stream stream, ReadOnlySpan<byte> type, ReadOnlySpan<byte> data)
+    {
+        Span<byte> length = stackalloc byte[4];
+        BinaryPrimitives.WriteInt32BigEndian(length, data.Length);
+        stream.Write(length);
+        stream.Write(type);
+        stream.Write(data);
+
+        using var crcInput = new MemoryStream();
+        crcInput.Write(type);
+        crcInput.Write(data);
+
+        Span<byte> crc = stackalloc byte[4];
+        BinaryPrimitives.WriteUInt32BigEndian(crc, PngCrc32(crcInput.ToArray()));
+        stream.Write(crc);
+    }
+
+    private static uint PngCrc32(byte[] bytes)
+    {
+        var crc = 0xffffffffu;
+        foreach (var value in bytes)
+        {
+            crc ^= value;
+            for (var bit = 0; bit < 8; bit++)
+                crc = (crc & 1) == 1 ? (crc >> 1) ^ 0xedb88320u : crc >> 1;
+        }
+
+        return crc ^ 0xffffffffu;
     }
 }

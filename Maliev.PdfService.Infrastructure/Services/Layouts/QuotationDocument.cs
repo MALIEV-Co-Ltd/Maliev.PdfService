@@ -1,4 +1,6 @@
+using System.Buffers.Binary;
 using System.IO;
+using System.IO.Compression;
 using System.Net.Http;
 using Maliev.PdfService.Api.Models.Data;
 using QuestPDF.Fluent;
@@ -14,9 +16,22 @@ namespace Maliev.PdfService.Api.Services.Layouts;
 public class QuotationDocument : IDocument
 {
     private const int MaxThumbnailBytes = 2 * 1024 * 1024;
+    private const int MaxThumbnailPixels = 1_000_000;
+    private const byte PngColorTypeRgb = 2;
+    private const byte PngColorTypeRgba = 6;
+    private const byte PngFilterNone = 0;
+    private const byte PngFilterSub = 1;
+    private const byte PngFilterUp = 2;
+    private const byte PngFilterAverage = 3;
+    private const byte PngFilterPaeth = 4;
+    private const byte TransparentAlpha = 0;
+    private const byte OpaqueAlpha = 255;
+    private const byte WhiteBackgroundThreshold = 245;
     private const string QuotationValidityNotice =
         "This quotation is valid until the specified date. Prices are subject to change after the validity period. " +
         "E&OE. (Errors and Omissions Excepted)";
+
+    private static readonly byte[] PngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
 
     private static readonly string[] ConfigurationDetailLabels =
     [
@@ -429,9 +444,15 @@ public class QuotationDocument : IDocument
             return cachedBytes;
 
         var bytes = LoadThumbnailBytes(thumbnailReference);
+        if (bytes is not null)
+            bytes = PrepareThumbnailBytes(bytes);
+
         _thumbnailImageCache[thumbnailReference] = bytes;
         return bytes;
     }
+
+    private static byte[] PrepareThumbnailBytes(byte[] bytes) =>
+        TryRemoveWhitePngBackground(bytes) ?? bytes;
 
     private static byte[]? LoadThumbnailBytes(string thumbnailReference)
     {
@@ -487,6 +508,265 @@ public class QuotationDocument : IDocument
         }
 
         return buffer.Length > 0 ? buffer.ToArray() : null;
+    }
+
+    private static byte[]? TryRemoveWhitePngBackground(byte[] bytes)
+    {
+        try
+        {
+            return TryDecodePng(bytes, out var width, out var height, out var rgba)
+                ? EncodePngWithTransparentBackground(width, height, rgba)
+                : null;
+        }
+        catch (Exception ex) when (ex is InvalidDataException
+            or IOException
+            or NotSupportedException
+            or OverflowException)
+        {
+            return null;
+        }
+    }
+
+    private static bool TryDecodePng(byte[] bytes, out int width, out int height, out byte[] rgba)
+    {
+        width = 0;
+        height = 0;
+        rgba = [];
+
+        if (bytes.Length < 33 || !bytes.AsSpan(0, PngSignature.Length).SequenceEqual(PngSignature))
+            return false;
+
+        byte bitDepth = 0;
+        byte colorType = 0;
+        byte interlaceMethod = 0;
+        using var idat = new MemoryStream();
+
+        var offset = PngSignature.Length;
+        while (offset + 12 <= bytes.Length)
+        {
+            var length = BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(offset, 4));
+            if (length < 0 || offset + 12 + length > bytes.Length)
+                return false;
+
+            var type = bytes.AsSpan(offset + 4, 4);
+            var dataOffset = offset + 8;
+
+            if (type.SequenceEqual("IHDR"u8))
+            {
+                width = BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(dataOffset, 4));
+                height = BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(dataOffset + 4, 4));
+                bitDepth = bytes[dataOffset + 8];
+                colorType = bytes[dataOffset + 9];
+                interlaceMethod = bytes[dataOffset + 12];
+            }
+            else if (type.SequenceEqual("IDAT"u8))
+            {
+                idat.Write(bytes, dataOffset, length);
+            }
+            else if (type.SequenceEqual("IEND"u8))
+            {
+                break;
+            }
+
+            offset += length + 12;
+        }
+
+        if (width <= 0 || height <= 0 ||
+            (long)width * height > MaxThumbnailPixels ||
+            bitDepth != 8 || interlaceMethod != 0 ||
+            colorType is not (PngColorTypeRgb or PngColorTypeRgba))
+        {
+            return false;
+        }
+
+        var bytesPerPixel = colorType == PngColorTypeRgba ? 4 : 3;
+        var stride = checked(width * bytesPerPixel);
+        var expectedLength = checked((stride + 1) * height);
+
+        idat.Position = 0;
+        using var zlib = new ZLibStream(idat, CompressionMode.Decompress);
+        using var decompressed = new MemoryStream(expectedLength);
+        zlib.CopyTo(decompressed);
+        var decompressedBytes = decompressed.ToArray();
+        if (decompressedBytes.Length != expectedLength)
+            return false;
+
+        var scanlines = UnfilterPngScanlines(decompressedBytes, width, height, bytesPerPixel);
+        rgba = ConvertToRgba(scanlines, width, height, colorType);
+        MakeEdgeConnectedWhitePixelsTransparent(rgba, width, height);
+
+        return true;
+    }
+
+    private static byte[] UnfilterPngScanlines(byte[] decompressedBytes, int width, int height, int bytesPerPixel)
+    {
+        var stride = width * bytesPerPixel;
+        var scanlines = new byte[stride * height];
+        var sourceOffset = 0;
+
+        for (var y = 0; y < height; y++)
+        {
+            var filter = decompressedBytes[sourceOffset++];
+            var rowOffset = y * stride;
+            for (var x = 0; x < stride; x++)
+            {
+                var raw = decompressedBytes[sourceOffset++];
+                var left = x >= bytesPerPixel ? scanlines[rowOffset + x - bytesPerPixel] : 0;
+                var up = y > 0 ? scanlines[rowOffset + x - stride] : 0;
+                var upLeft = x >= bytesPerPixel && y > 0 ? scanlines[rowOffset + x - stride - bytesPerPixel] : 0;
+
+                scanlines[rowOffset + x] = filter switch
+                {
+                    PngFilterNone => raw,
+                    PngFilterSub => unchecked((byte)(raw + left)),
+                    PngFilterUp => unchecked((byte)(raw + up)),
+                    PngFilterAverage => unchecked((byte)(raw + ((left + up) / 2))),
+                    PngFilterPaeth => unchecked((byte)(raw + PaethPredictor(left, up, upLeft))),
+                    _ => throw new InvalidDataException("Unsupported PNG filter.")
+                };
+            }
+        }
+
+        return scanlines;
+    }
+
+    private static byte[] ConvertToRgba(byte[] scanlines, int width, int height, byte colorType)
+    {
+        var sourceBytesPerPixel = colorType == PngColorTypeRgba ? 4 : 3;
+        var rgba = new byte[width * height * 4];
+        var sourceOffset = 0;
+        var targetOffset = 0;
+
+        for (var i = 0; i < width * height; i++)
+        {
+            rgba[targetOffset++] = scanlines[sourceOffset++];
+            rgba[targetOffset++] = scanlines[sourceOffset++];
+            rgba[targetOffset++] = scanlines[sourceOffset++];
+            rgba[targetOffset++] = sourceBytesPerPixel == 4 ? scanlines[sourceOffset++] : OpaqueAlpha;
+        }
+
+        return rgba;
+    }
+
+    private static byte PaethPredictor(int left, int up, int upLeft)
+    {
+        var estimate = left + up - upLeft;
+        var leftDistance = Math.Abs(estimate - left);
+        var upDistance = Math.Abs(estimate - up);
+        var upLeftDistance = Math.Abs(estimate - upLeft);
+
+        if (leftDistance <= upDistance && leftDistance <= upLeftDistance)
+            return (byte)left;
+
+        return upDistance <= upLeftDistance ? (byte)up : (byte)upLeft;
+    }
+
+    private static void MakeEdgeConnectedWhitePixelsTransparent(byte[] rgba, int width, int height)
+    {
+        var visited = new bool[width * height];
+        var queue = new Queue<int>();
+
+        for (var x = 0; x < width; x++)
+        {
+            EnqueueIfBackground(x, 0);
+            EnqueueIfBackground(x, height - 1);
+        }
+
+        for (var y = 1; y < height - 1; y++)
+        {
+            EnqueueIfBackground(0, y);
+            EnqueueIfBackground(width - 1, y);
+        }
+
+        while (queue.Count > 0)
+        {
+            var pixelIndex = queue.Dequeue();
+            var x = pixelIndex % width;
+            var y = pixelIndex / width;
+            rgba[(pixelIndex * 4) + 3] = TransparentAlpha;
+
+            EnqueueIfBackground(x - 1, y);
+            EnqueueIfBackground(x + 1, y);
+            EnqueueIfBackground(x, y - 1);
+            EnqueueIfBackground(x, y + 1);
+        }
+
+        void EnqueueIfBackground(int x, int y)
+        {
+            if (x < 0 || y < 0 || x >= width || y >= height)
+                return;
+
+            var pixelIndex = (y * width) + x;
+            if (visited[pixelIndex])
+                return;
+
+            visited[pixelIndex] = true;
+            var offset = pixelIndex * 4;
+            if (rgba[offset + 3] > TransparentAlpha &&
+                rgba[offset] >= WhiteBackgroundThreshold &&
+                rgba[offset + 1] >= WhiteBackgroundThreshold &&
+                rgba[offset + 2] >= WhiteBackgroundThreshold)
+            {
+                queue.Enqueue(pixelIndex);
+            }
+        }
+    }
+
+    private static byte[] EncodePngWithTransparentBackground(int width, int height, byte[] rgba)
+    {
+        using var imageData = new MemoryStream();
+        using (var zlib = new ZLibStream(imageData, CompressionLevel.Optimal, leaveOpen: true))
+        {
+            for (var y = 0; y < height; y++)
+            {
+                zlib.WriteByte(PngFilterNone);
+                zlib.Write(rgba, y * width * 4, width * 4);
+            }
+        }
+
+        using var png = new MemoryStream();
+        png.Write(PngSignature);
+
+        Span<byte> header = stackalloc byte[13];
+        BinaryPrimitives.WriteInt32BigEndian(header, width);
+        BinaryPrimitives.WriteInt32BigEndian(header[4..], height);
+        header[8] = 8;
+        header[9] = PngColorTypeRgba;
+        WritePngChunk(png, "IHDR"u8, header);
+        WritePngChunk(png, "IDAT"u8, imageData.ToArray());
+        WritePngChunk(png, "IEND"u8, []);
+
+        return png.ToArray();
+    }
+
+    private static void WritePngChunk(Stream stream, ReadOnlySpan<byte> type, ReadOnlySpan<byte> data)
+    {
+        Span<byte> length = stackalloc byte[4];
+        BinaryPrimitives.WriteInt32BigEndian(length, data.Length);
+        stream.Write(length);
+        stream.Write(type);
+        stream.Write(data);
+
+        using var crcInput = new MemoryStream();
+        crcInput.Write(type);
+        crcInput.Write(data);
+
+        Span<byte> crc = stackalloc byte[4];
+        BinaryPrimitives.WriteUInt32BigEndian(crc, PngCrc32(crcInput.ToArray()));
+        stream.Write(crc);
+    }
+
+    private static uint PngCrc32(byte[] bytes)
+    {
+        var crc = 0xffffffffu;
+        foreach (var value in bytes)
+        {
+            crc ^= value;
+            for (var bit = 0; bit < 8; bit++)
+                crc = (crc & 1) == 1 ? (crc >> 1) ^ 0xedb88320u : crc >> 1;
+        }
+
+        return crc ^ 0xffffffffu;
     }
 
     private static IContainer HeaderCell(IContainer container)
