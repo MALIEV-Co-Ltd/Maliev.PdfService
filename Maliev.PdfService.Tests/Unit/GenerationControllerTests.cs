@@ -127,6 +127,57 @@ public class GenerationControllerTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// Verifies that the latest lookup returns the newest completed PDF for a reference.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
+    [Fact]
+    public async Task GetLatest_WithCompletedGeneration_ReturnsNewestStorageUrl()
+    {
+        // Arrange
+        _dbContext.GenerationRequests.AddRange(
+            new GenerationRequest
+            {
+                ReferenceId = "QT-001",
+                TemplateCode = "Quotation",
+                DocumentType = DocumentType.Quotation,
+                Status = GenerationStatus.Completed,
+                StorageUrl = "https://storage.example/old.pdf",
+                CreatedAt = DateTime.UtcNow.AddMinutes(-10),
+                CompletedAt = DateTime.UtcNow.AddMinutes(-9)
+            },
+            new GenerationRequest
+            {
+                ReferenceId = "QT-001",
+                TemplateCode = "Quotation",
+                DocumentType = DocumentType.Quotation,
+                Status = GenerationStatus.Completed,
+                StorageUrl = "https://storage.example/new.pdf",
+                CreatedAt = DateTime.UtcNow.AddMinutes(-2),
+                CompletedAt = DateTime.UtcNow.AddMinutes(-1)
+            },
+            new GenerationRequest
+            {
+                ReferenceId = "QT-001",
+                TemplateCode = "Quotation",
+                DocumentType = DocumentType.Invoice,
+                Status = GenerationStatus.Completed,
+                StorageUrl = "https://storage.example/invoice.pdf",
+                CreatedAt = DateTime.UtcNow,
+                CompletedAt = DateTime.UtcNow
+            });
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        var result = await _controller.GetLatest(DocumentType.Quotation, "QT-001");
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var json = JsonSerializer.Serialize(okResult.Value);
+        using var document = JsonDocument.Parse(json);
+        Assert.Equal("https://storage.example/new.pdf", document.RootElement.GetProperty("storageUrl").GetString());
+    }
+
+    /// <summary>
     /// Verifies that synchronous generation failures return an internal server error and store failure details.
     /// </summary>
     /// <returns>A task that represents the asynchronous test operation.</returns>

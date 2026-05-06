@@ -10,6 +10,7 @@ using Maliev.PdfService.Domain.Entities;
 using MassTransit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Maliev.PdfService.Api.Controllers;
 
@@ -139,6 +140,44 @@ public class GenerationController : ControllerBase
 
             return StatusCode(500, new { error = "Failed to generate PDF", requestId = log.Id });
         }
+    }
+
+    /// <summary>
+    /// Returns the latest completed PDF generation for the specified business reference.
+    /// </summary>
+    /// <param name="documentType">The generated document type.</param>
+    /// <param name="referenceId">The business reference ID used when the PDF was generated.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The latest generated PDF URL, if available.</returns>
+    [HttpGet("latest")]
+    [RequirePermission(PdfPermissions.GenerationRead)]
+    public async Task<IActionResult> GetLatest(
+        [FromQuery] DocumentType documentType,
+        [FromQuery] string referenceId,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(referenceId))
+            return BadRequest(new { error = "referenceId is required" });
+
+        var generation = await _dbContext.GenerationRequests
+            .AsNoTracking()
+            .Where(request =>
+                request.DocumentType == documentType &&
+                request.ReferenceId == referenceId &&
+                request.Status == GenerationStatus.Completed &&
+                request.StorageUrl != null)
+            .OrderByDescending(request => request.CompletedAt ?? request.CreatedAt)
+            .FirstOrDefaultAsync(ct);
+
+        if (generation is null)
+            return NotFound();
+
+        return Ok(new
+        {
+            requestId = generation.Id,
+            storageUrl = generation.StorageUrl,
+            completedAt = generation.CompletedAt
+        });
     }
 
     /// <summary>
