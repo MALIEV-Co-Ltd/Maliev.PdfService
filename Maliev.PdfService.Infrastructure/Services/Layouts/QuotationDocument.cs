@@ -222,11 +222,14 @@ public class QuotationDocument : IDocument
 
                 if (!string.IsNullOrEmpty(Data.SpecialTerms))
                 {
-                    content.Item().PaddingTop(12).Column(col =>
-                    {
-                        col.Item().Text("เงื่อนไข / TERMS").Bold().FontSize(8).FontColor(Colors.Grey.Darken1);
-                        col.Item().PaddingTop(3).Text(Data.SpecialTerms).FontSize(9);
-                    });
+                    content.Item()
+                        .PaddingTop(12)
+                        .ShowEntire()
+                        .Column(col =>
+                        {
+                            col.Item().Text("เงื่อนไข / TERMS").Bold().FontSize(8).FontColor(Colors.Grey.Darken1);
+                            col.Item().PaddingTop(3).Text(Data.SpecialTerms).FontSize(9);
+                        });
                 }
 
                 if (!string.IsNullOrEmpty(Data.ChangeSummary))

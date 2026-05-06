@@ -1,6 +1,7 @@
 using Maliev.PdfService.Api.Models.Data;
 using Maliev.PdfService.Api.Services.Layouts;
 using QuestPDF.Fluent;
+using UglyToad.PdfPig;
 using Xunit;
 
 namespace Maliev.PdfService.Tests.Unit;
@@ -126,6 +127,47 @@ public class LayoutTests
         // Assert
         Assert.NotNull(pdf);
         Assert.NotEmpty(pdf);
+    }
+
+    /// <summary>
+    /// Tests that the quotation terms heading is kept on the same page as the terms content.
+    /// </summary>
+    [Fact]
+    public void QuotationDocument_KeepsTermsHeadingWithTermsContent()
+    {
+        // Arrange
+        const string terms = "test term";
+        var document = new QuotationDocument(new QuotationData
+        {
+            QuotationNumber = "Q-KEEP-TOGETHER",
+            CustomerName = "Acme Thailand",
+            Items = Enumerable.Range(1, 7).Select(i => new QuotationItemData
+            {
+                Index = i,
+                PartName = $"d18-19-{i}.stp",
+                MaterialName = "Aluminum 6061-T6",
+                ManufacturingProcess = "CNC Milling",
+                Quantity = 4,
+                QuantityUnit = "pcs",
+                UnitPrice = 2500,
+                LineTotal = 10000,
+                Notes = "Bounding box: 43 x 22 x 43 mm | Surface finish: As-machined | Tolerance: Medium (ISO 2768-m) | Surface roughness: Ra 3.2 um | Inspection: Standard"
+            }).ToList(),
+            Subtotal = 50000,
+            ManualDiscountAmount = 300,
+            ShippingCost = 350,
+            TaxAmount = 3503.50m,
+            TotalAmount = 53553.50m,
+            DeliveryExpectations = "Standard: 6 - 9 business days after order confirmation",
+            SpecialTerms = terms,
+        });
+
+        // Act
+        var pages = ExtractPageText(document.GeneratePdf());
+
+        // Assert
+        Assert.Contains(pages, page => page.Contains("/ TERMS", StringComparison.Ordinal) && page.Contains(terms, StringComparison.Ordinal));
+        Assert.DoesNotContain(pages, page => page.Contains("/ TERMS", StringComparison.Ordinal) && !page.Contains(terms, StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -373,5 +415,13 @@ public class LayoutTests
         // Assert
         Assert.NotNull(pdf);
         Assert.NotEmpty(pdf);
+    }
+
+    private static IReadOnlyList<string> ExtractPageText(byte[] pdf)
+    {
+        using var stream = new MemoryStream(pdf);
+        using var document = PdfDocument.Open(stream);
+
+        return document.GetPages().Select(page => page.Text).ToList();
     }
 }
