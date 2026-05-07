@@ -330,12 +330,6 @@ public class QuotationDocument : IDocument
         if (noteLines.Count == 0)
             return;
 
-        if (noteLines.Count == 1)
-        {
-            serviceCol.Item().PaddingTop(4).Text($"Note: {noteLines[0]}").FontSize(7).FontColor(Colors.Grey.Darken2).LineHeight(1.25f);
-            return;
-        }
-
         serviceCol.Item().PaddingTop(4).Text("Note:").FontSize(7).Bold().FontColor(Colors.Grey.Darken2).LineHeight(1.25f);
         foreach (var noteLine in noteLines)
             serviceCol.Item().PaddingLeft(6).Text(noteLine).FontSize(7).FontColor(Colors.Grey.Darken2).LineHeight(1.25f);

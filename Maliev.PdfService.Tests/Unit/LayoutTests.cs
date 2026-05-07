@@ -174,10 +174,10 @@ public class LayoutTests
     }
 
     /// <summary>
-    /// Tests that quotation item manufacturing notes are labeled separately from configuration details.
+    /// Tests that quotation item manufacturing notes render below the note label.
     /// </summary>
     [Fact]
-    public void QuotationDocument_GeneratesPdf_WithLabeledManufacturingNote()
+    public void QuotationDocument_GeneratesPdf_WithSingleManufacturingNote_UsesNoteHeading()
     {
         // Arrange
         var document = new QuotationDocument(new QuotationData
@@ -197,7 +197,7 @@ public class LayoutTests
                         "Bounding box: 43 x 22 x 43 mm",
                         "Tolerance: Medium (ISO 2768-m)",
                     ],
-                    Notes = "test 13",
+                    Notes = "hello test 123",
                     Quantity = 1,
                     QuantityUnit = "pcs",
                     UnitPrice = 100,
@@ -213,7 +213,8 @@ public class LayoutTests
         var text = string.Join(Environment.NewLine, pages);
 
         // Assert
-        Assert.Contains("Note: test 13", text, StringComparison.Ordinal);
+        Assert.Contains("Note:", text, StringComparison.Ordinal);
+        Assert.Contains("hello test 123", text, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -263,7 +264,8 @@ public class LayoutTests
         Assert.Contains("Surface finish: As-printed", text, StringComparison.Ordinal);
         Assert.Contains("Tolerance: FDM Standard +-0.3mm", text, StringComparison.Ordinal);
         Assert.Contains("Inspection: Standard", text, StringComparison.Ordinal);
-        Assert.Contains("Note: gawewev", text, StringComparison.Ordinal);
+        Assert.Contains("Note:", text, StringComparison.Ordinal);
+        Assert.Contains("gawewev", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Note: Bounding box:", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Note: Surface finish:", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Note: Tolerance:", text, StringComparison.Ordinal);
