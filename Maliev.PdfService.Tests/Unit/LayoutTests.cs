@@ -510,6 +510,56 @@ public class LayoutTests
     }
 
     /// <summary>
+    /// Tests that manual discount descriptions are not rendered as customer-facing discount notes.
+    /// </summary>
+    [Fact]
+    public void QuotationDocument_GeneratesPdf_WithManualDiscount_DoesNotRenderManualDiscountDescription()
+    {
+        // Arrange
+        var document = new QuotationDocument(new QuotationData
+        {
+            QuotationNumber = "Q-MANUAL-DISCOUNT",
+            CustomerName = "Acme Thailand",
+            Currency = "THB",
+            SubtotalBeforeDiscount = 1000,
+            TotalDiscount = 100,
+            ManualDiscountAmount = 100,
+            Subtotal = 900,
+            TotalAmount = 900,
+            Discounts =
+            [
+                new QuotationDiscountData
+                {
+                    DiscountType = "FixedAmount",
+                    DiscountValue = 100,
+                    Conditions = "Manual discount"
+                }
+            ],
+            Items =
+            [
+                new QuotationItemData
+                {
+                    Index = 1,
+                    PartName = "bracket.step",
+                    MaterialName = "PLA",
+                    ManufacturingProcess = "3D Printing (FDM)",
+                    Quantity = 1,
+                    UnitPrice = 1000,
+                    LineTotal = 1000
+                }
+            ],
+        });
+
+        // Act
+        var text = string.Join(Environment.NewLine, ExtractPageText(document.GeneratePdf()));
+
+        // Assert
+        Assert.Contains("Discount:", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Manual discount", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("FixedAmount: THB 100.00", text, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// Tests that unavailable remote quotation thumbnails are skipped instead of failing PDF generation.
     /// </summary>
     [Fact]

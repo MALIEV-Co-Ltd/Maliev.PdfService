@@ -244,12 +244,16 @@ public class QuotationDocument : IDocument
                     summary.ConstantItem(190).Element(ComposeTotals);
                 });
 
-                if (Data.Discounts.Count > 0)
+                var displayDiscounts = Data.Discounts
+                    .Where(discount => !string.Equals(discount.Conditions, "Manual discount", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                if (displayDiscounts.Count > 0)
                 {
                     content.Item().PaddingTop(8).Column(discCol =>
                     {
                         discCol.Item().Text("ส่วนลด / DISCOUNTS:").Bold().FontSize(8).FontColor(Colors.Grey.Darken1);
-                        foreach (var discount in Data.Discounts)
+                        foreach (var discount in displayDiscounts)
                         {
                             discCol.Item().PaddingTop(2).Text(text =>
                             {
