@@ -115,6 +115,9 @@ public class QuotationData
     /// <summary>Email of the employee who generated or issued the quotation.</summary>
     public string? QuotedByEmail { get; set; }
 
+    /// <summary>Phone number of the employee who generated or issued the quotation.</summary>
+    public string? QuotedByPhone { get; set; }
+
     /// <summary>UTC timestamp when the quotation was generated or issued.</summary>
     public DateTime? QuotedAt { get; set; }
 

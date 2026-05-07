@@ -479,6 +479,7 @@ public class LayoutTests
             CustomerName = "Acme Thailand",
             QuotedByName = "Alex Kim",
             QuotedByEmail = "alex.kim@maliev.com",
+            QuotedByPhone = "+66810000000",
             QuotedAt = new DateTime(2026, 5, 3, 8, 30, 0, DateTimeKind.Utc),
             Items =
             [
@@ -499,11 +500,13 @@ public class LayoutTests
         });
 
         // Act
-        var pdf = document.GeneratePdf();
+        var pages = ExtractPageText(document.GeneratePdf());
+        var text = string.Join(Environment.NewLine, pages);
 
         // Assert
-        Assert.NotNull(pdf);
-        Assert.NotEmpty(pdf);
+        Assert.Contains("Alex Kim", text, StringComparison.Ordinal);
+        Assert.Contains("alex.kim@maliev.com", text, StringComparison.Ordinal);
+        Assert.Contains("+66810000000", text, StringComparison.Ordinal);
     }
 
     /// <summary>

@@ -868,6 +868,9 @@ public class QuotationDocument : IDocument
             if (!string.IsNullOrWhiteSpace(Data.QuotedByEmail) && !string.Equals(Data.QuotedByEmail, name, StringComparison.OrdinalIgnoreCase))
                 col.Item().PaddingTop(2).Text(Data.QuotedByEmail).FontSize(8).FontColor(Colors.Grey.Darken1);
 
+            if (!string.IsNullOrWhiteSpace(Data.QuotedByPhone))
+                col.Item().PaddingTop(2).Text(Data.QuotedByPhone).FontSize(8).FontColor(Colors.Grey.Darken1);
+
             if (Data.QuotedAt.HasValue)
                 col.Item().PaddingTop(2).Text($"Quoted on: {Data.QuotedAt.Value:dd MMM yyyy HH:mm}").FontSize(8).FontColor(Colors.Grey.Darken1);
         });
