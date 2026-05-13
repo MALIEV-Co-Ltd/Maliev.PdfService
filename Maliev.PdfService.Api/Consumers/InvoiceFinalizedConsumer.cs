@@ -56,30 +56,34 @@ public class InvoiceFinalizedConsumer : IConsumer<InvoiceCreatedEvent>
 
         try
         {
-            var invoiceDto = await _invoiceServiceClient.GetInvoiceByIdAsync(payload.InvoiceId, context.CancellationToken);
+            var invoiceDto = await _invoiceServiceClient.GetInvoiceByIdAsync(payload.InvoiceId, context.CancellationToken)
+                ?? throw new InvalidOperationException($"Invoice {payload.InvoiceId} could not be loaded from InvoiceService.");
+            var invoiceNumber = string.IsNullOrWhiteSpace(invoiceDto.InvoiceNumber)
+                ? payload.InvoiceNumber
+                : invoiceDto.InvoiceNumber;
 
             var invoiceData = new InvoiceData
             {
-                InvoiceNumber = payload.InvoiceNumber,
+                InvoiceNumber = invoiceNumber,
                 DocumentType = "TaxInvoice",
-                IssueDate = invoiceDto?.IssueDate ?? DateTime.UtcNow,
-                DueDate = invoiceDto?.DueDate,
-                CustomerName = invoiceDto?.CustomerName ?? string.Empty,
+                IssueDate = invoiceDto.IssueDate,
+                DueDate = invoiceDto.DueDate,
+                CustomerName = invoiceDto.CustomerName,
                 Currency = payload.Currency ?? "THB",
-                Subtotal = Convert.ToDecimal(invoiceDto?.SubTotalAmount ?? 0),
-                TaxAmount = Convert.ToDecimal(invoiceDto?.TaxAmount ?? 0),
-                GrandTotal = Convert.ToDecimal(invoiceDto?.TotalAmount ?? 0),
-                Items = invoiceDto?.Items?.Select((item, idx) => new InvoiceItemData
+                Subtotal = invoiceDto.SubTotalAmount,
+                TaxAmount = invoiceDto.TaxAmount,
+                GrandTotal = invoiceDto.TotalAmount,
+                Items = invoiceDto.Items.Select((item, idx) => new InvoiceItemData
                 {
                     Index = idx + 1,
                     Description = item.Description,
-                    Quantity = Convert.ToDecimal(item.Quantity),
+                    Quantity = item.Quantity,
                     Unit = "pcs",
-                    UnitPrice = Convert.ToDecimal(item.UnitPrice),
-                    LineSubtotal = Convert.ToDecimal(item.TotalAmount),
+                    UnitPrice = item.UnitPrice,
+                    LineSubtotal = item.TotalAmount,
                     LineTaxAmount = 0,
-                    LineTotal = Convert.ToDecimal(item.TotalAmount)
-                }).ToList() ?? new List<InvoiceItemData>()
+                    LineTotal = item.TotalAmount
+                }).ToList()
             };
 
             var pdfBytes = await _pdfGenerator.GeneratePdfAsync(DocumentType.Invoice, invoiceData, log.TemplateCode);

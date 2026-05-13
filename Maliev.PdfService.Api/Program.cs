@@ -54,7 +54,9 @@ try
     builder.AddAuthenticatedServiceClient<IUploadServiceClient, UploadServiceClient>(
         "UploadService",
         sourceServiceName: "pdf");
-    builder.AddServiceClient<IInvoiceServiceClient, InvoiceServiceClient>("InvoiceService");
+    builder.AddAuthenticatedServiceClient<IInvoiceServiceClient, InvoiceServiceClient>(
+        "InvoiceService",
+        sourceServiceName: "pdf");
 
     // Add DeliveryService HTTP client for fetching delivery note data
     builder.Services.AddHttpClient("DeliveryService", client =>

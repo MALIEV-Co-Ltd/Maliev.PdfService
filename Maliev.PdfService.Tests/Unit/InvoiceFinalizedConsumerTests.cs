@@ -26,6 +26,7 @@ public class InvoiceFinalizedConsumerTests : IAsyncLifetime
 
     private readonly Mock<IPdfGenerator> _pdfGeneratorMock = new();
     private readonly Mock<IUploadServiceClient> _uploadServiceMock = new();
+    private readonly Mock<IInvoiceServiceClient> _invoiceServiceClientMock = new();
     private readonly Mock<ILogger<InvoiceFinalizedConsumer>> _loggerMock = new();
     private InvoiceFinalizedConsumer _consumer = null!;
     private PdfDbContext _dbContext = null!;
@@ -45,8 +46,36 @@ public class InvoiceFinalizedConsumerTests : IAsyncLifetime
         await _dbContext.Database.EnsureCreatedAsync();
         var dbContext = _dbContext;
 
-        var invoiceClientMock = new Moq.Mock<Maliev.PdfService.Api.Services.IInvoiceServiceClient>();
-        _consumer = new InvoiceFinalizedConsumer(_pdfGeneratorMock.Object, _uploadServiceMock.Object, dbContext, _loggerMock.Object, invoiceClientMock.Object);
+        _invoiceServiceClientMock
+            .Setup(x => x.GetInvoiceByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid invoiceId, CancellationToken _) => new InvoiceDto
+            {
+                InvoiceId = invoiceId,
+                InvoiceNumber = "INV-001",
+                CustomerName = "Test Customer",
+                IssueDate = DateTime.UtcNow,
+                DueDate = DateTime.UtcNow.AddDays(30),
+                SubTotalAmount = 1000m,
+                TaxAmount = 70m,
+                TotalAmount = 1070m,
+                Items =
+                [
+                    new InvoiceItemDto
+                    {
+                        Description = "Test Item",
+                        Quantity = 1m,
+                        UnitPrice = 1000m,
+                        TotalAmount = 1070m
+                    }
+                ]
+            });
+
+        _consumer = new InvoiceFinalizedConsumer(
+            _pdfGeneratorMock.Object,
+            _uploadServiceMock.Object,
+            dbContext,
+            _loggerMock.Object,
+            _invoiceServiceClientMock.Object);
     }
 
     /// <summary>
