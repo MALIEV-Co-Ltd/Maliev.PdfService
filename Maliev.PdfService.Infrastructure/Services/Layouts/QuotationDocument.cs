@@ -84,7 +84,7 @@ public class QuotationDocument : IDocument
                 {
                     headerRow.RelativeItem().Column(col =>
                     {
-                        col.Item().Height(20).Width(60).Svg(ReadResourceText("MALIEV_BLACK.svg"));
+                        col.Item().Height(20).Width(60).Svg(DocumentResources.ReadText("MALIEV_BLACK.svg"));
                         col.Item().PaddingTop(3).Text("MALIEV Co., Ltd. (Head Office) | สำนักงานใหญ่").FontSize(8).Bold();
                         col.Item().Text("36/1 Moo 3, Khlong Khoi, Pak Kret, Nonthaburi 11120").FontSize(8).FontColor(Colors.Grey.Darken1);
                         col.Item().Text("บริษัท มาลีฟ จำกัด 36/1 หมู่ 3 ต.คลองข่อย อ.ปากเกร็ด จ.นนทบุรี 11120").FontSize(8).FontColor(Colors.Grey.Darken1);
@@ -895,7 +895,6 @@ public class QuotationDocument : IDocument
 
     private static string ReadResourceText(string fileName)
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "Resources", fileName);
-        return File.ReadAllText(path);
+        return DocumentResources.ReadText(fileName);
     }
 }

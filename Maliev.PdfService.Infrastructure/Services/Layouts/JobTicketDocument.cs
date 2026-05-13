@@ -44,7 +44,7 @@ public class JobTicketDocument : IDocument
                     // Company name + label
                     row.RelativeItem().Column(col =>
                     {
-                        col.Item().Height(20).Width(60).Svg(File.ReadAllText("Resources/MALIEV_BLACK.svg"));
+                        col.Item().Height(20).Width(60).Svg(DocumentResources.ReadText("MALIEV_BLACK.svg"));
                     });
 
                     // Priority badge + job number
@@ -219,7 +219,7 @@ public class JobTicketDocument : IDocument
 
                 // ─── Reference Images ─────────────────────────────────────────
 
-                var placeholderSvg = File.ReadAllText("Resources/placeholder.svg");
+                var placeholderSvg = DocumentResources.ReadText("placeholder.svg");
 
                 content.Item().PaddingTop(10).Table(table =>
                 {
