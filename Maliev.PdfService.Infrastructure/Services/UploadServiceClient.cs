@@ -48,12 +48,15 @@ public class UploadServiceClient : IUploadServiceClient
         fileContent.Headers.ContentLength = content.LongLength;
         fileContent.Headers.ContentRange = new ContentRangeHeaderValue(0, content.LongLength - 1, content.LongLength);
 
-        var gcsResponse = await _httpClient.PutAsync(session.SessionUri, fileContent, cancellationToken);
+        var gcsResponse = await _httpClient.PutAsync(
+            $"upload/v1/uploads/resumable/{Uri.EscapeDataString(session.UploadId)}",
+            fileContent,
+            cancellationToken);
         if (!gcsResponse.IsSuccessStatusCode)
         {
             var error = await gcsResponse.Content.ReadAsStringAsync(cancellationToken);
-            _logger.LogError("Failed to upload file directly to GCS. Status: {StatusCode}, Error: {Error}", gcsResponse.StatusCode, error);
-            throw new InvalidOperationException($"Failed to upload file to GCS: {gcsResponse.StatusCode}");
+            _logger.LogError("Failed to upload file through UploadService resumable proxy. Status: {StatusCode}, Error: {Error}", gcsResponse.StatusCode, error);
+            throw new InvalidOperationException($"Failed to upload file through UploadService proxy: {gcsResponse.StatusCode}");
         }
 
         var completeResponse = await _httpClient.PostAsJsonAsync(

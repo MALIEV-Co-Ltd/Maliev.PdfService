@@ -63,7 +63,7 @@ public class UploadServiceClientTests
                     };
                 }
 
-                if (request.Method == HttpMethod.Put && request.RequestUri?.AbsoluteUri == "http://upload-session/upload")
+                if (request.Method == HttpMethod.Put && request.RequestUri?.PathAndQuery == $"/upload/v1/uploads/resumable/{uploadId}")
                 {
                     return new HttpResponseMessage(HttpStatusCode.OK);
                 }
@@ -119,7 +119,7 @@ public class UploadServiceClientTests
                     };
                 }
 
-                if (request.Method == HttpMethod.Put && request.RequestUri?.AbsoluteUri == "http://upload-session/upload")
+                if (request.Method == HttpMethod.Put && request.RequestUri?.PathAndQuery == $"/upload/v1/uploads/resumable/{uploadId}")
                 {
                     return new HttpResponseMessage(HttpStatusCode.OK);
                 }
