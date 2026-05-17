@@ -93,6 +93,22 @@ public class DocumentFactoryTests
     }
 
     /// <summary>
+    /// Tests that CreateDocument returns CommerceBomDocument.
+    /// </summary>
+    [Fact]
+    public void CreateDocument_CommerceBom_ReturnsCommerceBomDocument()
+    {
+        // Arrange
+        var data = new CommerceBomData { ProductTitle = "Starter machine", ProductHandle = "starter-machine" };
+
+        // Act
+        var doc = _factory.CreateDocument(DocumentType.CommerceBom, data);
+
+        // Assert
+        Assert.IsType<CommerceBomDocument>(doc);
+    }
+
+    /// <summary>
     /// Tests that MapToInvoiceData returns data from JsonElement.
     /// </summary>
     [Fact]

@@ -750,6 +750,48 @@ public class LayoutTests
         Assert.NotEmpty(pdf);
     }
 
+    /// <summary>
+    /// Tests that CommerceBomDocument generates a PDF with BOM items.
+    /// </summary>
+    [Fact]
+    public void CommerceBomDocument_GeneratesPdf_WithBomItems()
+    {
+        // Arrange
+        var document = new CommerceBomDocument(new CommerceBomData
+        {
+            ProductTitle = "Pneumatic Injection Molding Machine 30g",
+            ProductHandle = "pneumatic-injection-molding-machine-30g",
+            Brand = "MALIEV",
+            ProductType = "Injection molding machine",
+            Status = "Draft",
+            Currency = "THB",
+            TotalCost = 4250m,
+            Items =
+            [
+                new CommerceBomItemData
+                {
+                    Index = 1,
+                    ItemName = "Pneumatic cylinder",
+                    Specification = "30g shot size",
+                    Quantity = 1,
+                    Unit = "pcs",
+                    UnitCost = 4250m,
+                    Currency = "THB",
+                    LineTotal = 4250m
+                }
+            ]
+        });
+
+        // Act
+        var pdf = document.GeneratePdf();
+        var text = string.Join(Environment.NewLine, ExtractPageText(pdf));
+
+        // Assert
+        Assert.NotEmpty(pdf);
+        Assert.Contains("PRODUCT BOM", text, StringComparison.Ordinal);
+        Assert.Contains("Pneumatic cylinder", text, StringComparison.Ordinal);
+    }
+
     private static IReadOnlyList<string> ExtractPageText(byte[] pdf)
     {
         using var stream = new MemoryStream(pdf);

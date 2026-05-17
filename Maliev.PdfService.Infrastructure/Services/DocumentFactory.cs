@@ -21,6 +21,7 @@ public class DocumentFactory : IDocumentFactory
             DocumentType.Report => new FinancialReportDocument(MapToFinancialReportData(data)),
             DocumentType.DeliveryNote => new DeliveryNoteDocument(MapToDeliveryNoteData(data)),
             DocumentType.JobTicket => new JobTicketDocument(MapToJobTicketData(data)),
+            DocumentType.CommerceBom => new CommerceBomDocument(MapToCommerceBomData(data)),
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
     }
@@ -113,5 +114,20 @@ public class DocumentFactory : IDocumentFactory
         }
 
         throw new InvalidOperationException($"Data must be of type {nameof(JobTicketData)} or JsonElement representing it. Actual type: {data?.GetType().Name ?? "null"}");
+    }
+
+    private static CommerceBomData MapToCommerceBomData(object data)
+    {
+        if (data is CommerceBomData bomData) return bomData;
+
+        if (data is System.Text.Json.JsonElement jsonElement)
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<CommerceBomData>(jsonElement.GetRawText(), new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            }) ?? throw new InvalidOperationException($"Failed to deserialize {nameof(CommerceBomData)} from JsonElement");
+        }
+
+        throw new InvalidOperationException($"Data must be of type {nameof(CommerceBomData)} or JsonElement representing it. Actual type: {data?.GetType().Name ?? "null"}");
     }
 }
