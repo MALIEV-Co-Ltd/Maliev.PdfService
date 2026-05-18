@@ -766,18 +766,29 @@ public class LayoutTests
             Status = "Draft",
             Currency = "THB",
             TotalCost = 4250m,
+            SourcingTimeDays = 14,
             Items =
             [
                 new CommerceBomItemData
                 {
                     Index = 1,
                     ItemName = "Pneumatic cylinder",
+                    PartNumber = "MLV-PIMM-30G-CYL",
+                    AssemblyName = "Injection unit",
+                    SubassemblyName = "Pneumatic drive",
+                    ImageUrl = "https://assets.maliev.com/bom/pimm-cylinder.png",
+                    DrawingUrl = "https://assets.maliev.com/drawings/pimm-cylinder.pdf",
+                    SupplierName = "MALIEV approved supplier",
+                    SupplierUrl = "https://supplier.example/pimm-cylinder",
                     Specification = "30g shot size",
                     Quantity = 1,
                     Unit = "pcs",
                     UnitCost = 4250m,
                     Currency = "THB",
-                    LineTotal = 4250m
+                    LineTotal = 4250m,
+                    LeadTimeDays = 10,
+                    SourcingTimeDays = 4,
+                    Notes = "Verify stroke length before purchase."
                 }
             ]
         });
@@ -790,6 +801,15 @@ public class LayoutTests
         Assert.NotEmpty(pdf);
         Assert.Contains("PRODUCT BOM", text, StringComparison.Ordinal);
         Assert.Contains("Pneumatic cylinder", text, StringComparison.Ordinal);
+        Assert.Contains("MLV-PIMM-30G-CYL", text, StringComparison.Ordinal);
+        Assert.Contains("Injection unit", text, StringComparison.Ordinal);
+        Assert.Contains("Pneumatic drive", text, StringComparison.Ordinal);
+        Assert.Contains("MALIEV approved supplier", text, StringComparison.Ordinal);
+        Assert.Contains("supplier.example/pimm-cylinder", text, StringComparison.Ordinal);
+        Assert.Contains("drawings/pimm-cylinder.pdf", text, StringComparison.Ordinal);
+        Assert.Contains("Lead time: 10 days", text, StringComparison.Ordinal);
+        Assert.Contains("Sourcing time: 14 days", text, StringComparison.Ordinal);
+        Assert.Contains("Verify stroke length before purchase.", text, StringComparison.Ordinal);
     }
 
     private static IReadOnlyList<string> ExtractPageText(byte[] pdf)

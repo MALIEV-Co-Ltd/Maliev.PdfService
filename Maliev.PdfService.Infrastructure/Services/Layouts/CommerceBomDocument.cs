@@ -73,52 +73,28 @@ public class CommerceBomDocument : IDocument
                     });
                 });
 
-                content.Item().PaddingTop(14).Table(table =>
+                content.Item().PaddingTop(14).Row(row =>
                 {
-                    table.ColumnsDefinition(columns =>
-                    {
-                        columns.ConstantColumn(28);
-                        columns.RelativeColumn(2.6f);
-                        columns.RelativeColumn(2.4f);
-                        columns.ConstantColumn(70);
-                        columns.ConstantColumn(82);
-                        columns.ConstantColumn(82);
-                    });
+                    AddSummaryCard(row.RelativeItem(), "BOM value", $"{Data.Currency} {Data.TotalCost:N2}");
+                    AddSummaryCard(row.RelativeItem(), "Items", Data.Items.Count.ToString("N0"));
+                    AddSummaryCard(row.RelativeItem(), "Sourcing time", FormatDays(Data.SourcingTimeDays));
+                });
+                content.Item().PaddingTop(4).Text($"Sourcing time: {FormatDays(Data.SourcingTimeDays)}").FontSize(8).FontColor(Colors.Grey.Darken1);
 
-                    AddHeaderCell(table, "#");
-                    AddHeaderCell(table, "Item");
-                    AddHeaderCell(table, "Specification");
-                    AddHeaderCell(table, "Qty");
-                    AddHeaderCell(table, "Unit cost");
-                    AddHeaderCell(table, "Line total");
-
+                content.Item().PaddingTop(14).Column(items =>
+                {
                     if (Data.Items.Count == 0)
                     {
-                        table.Cell().ColumnSpan(6).Padding(10).AlignCenter().Text("No BOM items configured.").FontColor(Colors.Grey.Darken1);
+                        items.Item().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(10).AlignCenter().Text("No BOM items configured.").FontColor(Colors.Grey.Darken1);
                     }
                     else
                     {
                         foreach (var item in Data.Items)
                         {
-                            table.Cell().Element(CellStyle).AlignCenter().Text(item.Index.ToString());
-                            table.Cell().Element(CellStyle).Text(text =>
-                            {
-                                text.Span(item.ItemName).Bold();
-                                if (!string.IsNullOrWhiteSpace(item.Notes))
-                                {
-                                    text.EmptyLine();
-                                    text.Span(item.Notes!).FontSize(8).FontColor(Colors.Grey.Darken1);
-                                }
-                            });
-                            table.Cell().Element(CellStyle).Text(FirstNonEmpty(item.Specification, "-"));
-                            table.Cell().Element(CellStyle).AlignRight().Text($"{item.Quantity:N4} {item.Unit}");
-                            table.Cell().Element(CellStyle).AlignRight().Text($"{item.Currency} {item.UnitCost:N2}");
-                            table.Cell().Element(CellStyle).AlignRight().Text($"{item.Currency} {item.LineTotal:N2}").Bold();
+                            items.Item().PaddingBottom(8).Element(container => ComposeBomItem(container, item));
                         }
                     }
                 });
-
-                content.Item().PaddingTop(12).AlignRight().Text($"{Data.Currency} {Data.TotalCost:N2}").FontSize(13).Bold();
             });
 
             page.Footer().Row(row =>
@@ -135,28 +111,79 @@ public class CommerceBomDocument : IDocument
         });
     }
 
-    private static void AddHeaderCell(TableDescriptor table, string label)
+    private static void AddSummaryCard(IContainer container, string label, string value)
     {
-        table.Cell()
-            .Background(Colors.Grey.Lighten3)
-            .BorderBottom(1)
-            .BorderColor(Colors.Grey.Medium)
-            .Padding(5)
-            .Text(label)
-            .FontSize(8)
-            .Bold();
+        container
+            .PaddingRight(6)
+            .Border(1)
+            .BorderColor(Colors.Grey.Lighten2)
+            .Background(Colors.Grey.Lighten5)
+            .Padding(8)
+            .Column(col =>
+            {
+                col.Item().Text(label).FontSize(8).FontColor(Colors.Grey.Darken1);
+                col.Item().Text(value).FontSize(11).Bold();
+            });
     }
 
-    private static IContainer CellStyle(IContainer container)
+    private static void ComposeBomItem(IContainer container, CommerceBomItemData item)
     {
-        return container
-            .BorderBottom(1)
+        container
+            .Border(1)
             .BorderColor(Colors.Grey.Lighten2)
-            .Padding(5);
+            .Padding(8)
+            .Column(card =>
+            {
+                card.Item().Row(row =>
+                {
+                    row.RelativeItem().Text(text =>
+                    {
+                        text.Span($"{item.Index}. {item.ItemName}").Bold();
+                        if (!string.IsNullOrWhiteSpace(item.PartNumber))
+                        {
+                            text.EmptyLine();
+                            text.Span($"Part no: {item.PartNumber}").FontSize(8).FontColor(Colors.Grey.Darken1);
+                        }
+                    });
+
+                    row.ConstantItem(120).AlignRight().Text($"{item.Currency} {item.LineTotal:N2}").Bold();
+                });
+
+                card.Item().PaddingTop(4).Text($"Specification: {FirstNonEmpty(item.Specification, "-")}").FontSize(8);
+                card.Item().PaddingTop(3).Text($"Assembly: {FirstNonEmpty(item.AssemblyName, "-")}").FontSize(8);
+                card.Item().Text($"Subassembly: {FirstNonEmpty(item.SubassemblyName, "-")}").FontSize(8);
+                card.Item().Text($"Supplier: {FirstNonEmpty(item.SupplierName, "-")}").FontSize(8);
+                card.Item().Text($"Supplier URL: {FirstNonEmpty(ShortenUrl(item.SupplierUrl), "-")}").FontSize(8);
+                card.Item().Text($"Drawing: {FirstNonEmpty(ShortenUrl(item.DrawingUrl), "-")}").FontSize(8);
+                card.Item().Text($"Image: {FirstNonEmpty(ShortenUrl(item.ImageUrl), "-")}").FontSize(8);
+                card.Item().PaddingTop(4).Text($"Qty: {item.Quantity:N4} {item.Unit} | Unit cost: {item.Currency} {item.UnitCost:N2} | Lead time: {FormatDays(item.LeadTimeDays)} | Sourcing time: {FormatDays(item.SourcingTimeDays)}").FontSize(8);
+
+                if (!string.IsNullOrWhiteSpace(item.Notes))
+                {
+                    card.Item().PaddingTop(4).Text($"Notes: {item.Notes}").FontSize(8).FontColor(Colors.Grey.Darken1);
+                }
+            });
     }
 
     private static string FirstNonEmpty(params string?[] values)
     {
         return values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+    }
+
+    private static string FormatDays(int? days)
+    {
+        var value = days.GetValueOrDefault();
+        return value <= 0 ? "Not set" : $"{value:N0} days";
+    }
+
+    private static string ShortenUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return string.Empty;
+        }
+
+        return url.Replace("https://", string.Empty, StringComparison.OrdinalIgnoreCase)
+            .Replace("http://", string.Empty, StringComparison.OrdinalIgnoreCase);
     }
 }
