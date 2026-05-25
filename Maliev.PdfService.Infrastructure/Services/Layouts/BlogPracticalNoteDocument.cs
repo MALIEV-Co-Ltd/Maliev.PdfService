@@ -375,7 +375,7 @@ public sealed class BlogPracticalNoteDocument(BlogPracticalNoteData data) : IDoc
 
     private static void ComposeQrCode(IContainer container, string url)
     {
-        container.Background(Colors.White).Border(1).BorderColor(Hairline).Padding(4).AspectRatio(1).Image(GenerateQrCode(url)).FitArea();
+        container.Background(Colors.White).Padding(3).AspectRatio(1).Image(GenerateQrCode(url)).FitArea();
     }
 
     private static byte[] GenerateQrCode(string url)
