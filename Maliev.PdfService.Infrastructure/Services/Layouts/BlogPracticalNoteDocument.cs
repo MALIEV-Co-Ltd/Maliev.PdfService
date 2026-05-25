@@ -205,9 +205,13 @@ public sealed class BlogPracticalNoteDocument(BlogPracticalNoteData data) : IDoc
                     row.RelativeItem().Element(ComposeSocialMediaCard);
                 });
 
-                column.Item().ExtendVertical().AlignBottom().PaddingTop(24).BorderTop(1).BorderColor(Hairline).PaddingTop(10).Text("This booklet is a practical guide, not a final manufacturing acceptance document. Include drawings, material requirements, operating conditions, and inspection criteria with your quote request.")
+                column.Item()
+                    .ExtendVertical()
+                    .AlignBottom()
+                    .PaddingBottom(28)
+                    .Text("This booklet is a practical guide, not a final manufacturing acceptance document. Include drawings, material requirements, operating conditions, and inspection criteria with your quote request.")
                     .FontSize(8)
-                    .LineHeight(1.35f)
+                    .LineHeight(1.4f)
                     .FontColor(Colors.Grey.Darken1);
             });
             ComposeFooter(page);
