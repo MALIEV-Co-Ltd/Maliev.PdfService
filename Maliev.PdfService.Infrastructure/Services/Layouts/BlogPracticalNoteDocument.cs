@@ -13,6 +13,10 @@ public sealed class BlogPracticalNoteDocument(BlogPracticalNoteData data) : IDoc
 {
     private const string QuoteUrl = "https://quote.maliev.com/projects/new";
     private const string MaterialsUrl = "https://www.maliev.com/materials";
+    private const string LineUrl = "https://page.line.me/maliev";
+    private const string FacebookUrl = "https://www.facebook.com/maliev.manufacturing/";
+    private const string YouTubeUrl = "https://www.youtube.com/channel/UCCosquPSUed6UPlMcRCq0Ig";
+    private const string InstagramUrl = "https://www.instagram.com/maliev.manufacturing/";
 
     private static readonly string AccentBlue = Colors.Blue.Darken2;
     private static readonly string BodyText = Colors.Grey.Darken3;
@@ -20,6 +24,13 @@ public sealed class BlogPracticalNoteDocument(BlogPracticalNoteData data) : IDoc
     private static readonly string Hairline = Colors.Grey.Lighten2;
     private static readonly string SoftPanel = Colors.Grey.Lighten5;
     private static readonly string WarmPanel = Colors.Grey.Lighten4;
+    private static readonly (string Channel, string Label, string Url)[] SocialLinks =
+    [
+        ("LINE", "Official Account @maliev", LineUrl),
+        ("Facebook", "maliev.manufacturing", FacebookUrl),
+        ("YouTube", "MALIEV channel", YouTubeUrl),
+        ("Instagram", "@maliev.manufacturing", InstagramUrl)
+    ];
 
     /// <summary>Gets the practical note data.</summary>
     public BlogPracticalNoteData Data { get; } = data;
@@ -101,21 +112,12 @@ public sealed class BlogPracticalNoteDocument(BlogPracticalNoteData data) : IDoc
                         column.Item().PaddingTop(22).Height(220).Background(WarmPanel).Image(Data.CoverImage!.Bytes).FitArea();
                     }
 
-                    column.Item().PaddingTop(28).BorderTop(1).BorderColor(Hairline).PaddingTop(16).Row(row =>
-                    {
-                        row.RelativeItem().Column(company =>
-                        {
-                            company.Item().Text("Prepared by MALIEV Co., Ltd.").FontSize(9).Bold().FontColor(DarkPanel);
-                            company.Item().Text("36/1 Moo 3, Khlong Khoi, Pak Kret, Nonthaburi 11120, Thailand").FontSize(8).FontColor(BodyText);
-                            company.Item().Text("www.maliev.com | info@maliev.com").FontSize(8).FontColor(BodyText);
-                            company.Item().PaddingTop(5).Text(text =>
-                            {
-                                text.Span("Read online: ").FontSize(8).FontColor(Colors.Grey.Darken1);
-                                text.Hyperlink(BlogPostUrl, BlogPostUrl).FontSize(8).Underline().FontColor(AccentBlue);
-                            });
-                        });
-                        row.ConstantItem(94).AlignRight().Hyperlink(BlogPostUrl).Element(item => ComposeQrCode(item, BlogPostUrl));
-                    });
+                    column.Item()
+                        .ExtendVertical()
+                        .AlignBottom()
+                        .PaddingBottom(6)
+                        .ShowEntire()
+                        .Element(ComposeCoverContactBlock);
                 });
         });
     }
@@ -196,20 +198,67 @@ public sealed class BlogPracticalNoteDocument(BlogPracticalNoteData data) : IDoc
                     row.RelativeItem().Element(item => ContactCard(item, "Compare materials", MaterialsUrl));
                 });
 
-                column.Item().PaddingTop(18).Background(SoftPanel).Border(1).BorderColor(Hairline).Padding(14).Column(company =>
+                column.Item().PaddingTop(18).Row(row =>
                 {
-                    company.Item().Text("MALIEV Co., Ltd.").FontSize(13).Bold().FontColor(DarkPanel);
-                    company.Item().PaddingTop(5).Text("36/1 Moo 3, Khlong Khoi, Pak Kret, Nonthaburi 11120, Thailand").FontSize(9).FontColor(BodyText);
-                    company.Item().Text("www.maliev.com | info@maliev.com").FontSize(9).FontColor(BodyText);
-                    company.Item().Text("Weekdays 10:00-18:00").FontSize(9).FontColor(BodyText);
+                    row.RelativeItem().Element(CompanyInfoCard);
+                    row.ConstantItem(12);
+                    row.RelativeItem().Element(ComposeSocialMediaCard);
                 });
 
-                column.Item().PaddingTop(24).BorderTop(1).BorderColor(Hairline).PaddingTop(10).Text("This booklet is a practical guide, not a final manufacturing acceptance document. Include drawings, material requirements, operating conditions, and inspection criteria with your quote request.")
+                column.Item().ExtendVertical().AlignBottom().PaddingTop(24).BorderTop(1).BorderColor(Hairline).PaddingTop(10).Text("This booklet is a practical guide, not a final manufacturing acceptance document. Include drawings, material requirements, operating conditions, and inspection criteria with your quote request.")
                     .FontSize(8)
                     .LineHeight(1.35f)
                     .FontColor(Colors.Grey.Darken1);
             });
             ComposeFooter(page);
+        });
+    }
+
+    private void ComposeCoverContactBlock(IContainer container)
+    {
+        container.BorderTop(1).BorderColor(Hairline).PaddingTop(16).Row(row =>
+        {
+            row.RelativeItem().Column(company =>
+            {
+                company.Item().Text("Prepared by MALIEV Co., Ltd.").FontSize(9).Bold().FontColor(DarkPanel);
+                company.Item().Text("36/1 Moo 3, Khlong Khoi, Pak Kret, Nonthaburi 11120, Thailand").FontSize(8).FontColor(BodyText);
+                company.Item().Text("www.maliev.com | info@maliev.com").FontSize(8).FontColor(BodyText);
+                company.Item().PaddingTop(5).Text(text =>
+                {
+                    text.Span("Read online: ").FontSize(8).FontColor(Colors.Grey.Darken1);
+                    text.Hyperlink(BlogPostUrl, BlogPostUrl).FontSize(8).Underline().FontColor(AccentBlue);
+                });
+            });
+            row.ConstantItem(94).AlignRight().Hyperlink(BlogPostUrl).Element(item => ComposeQrCode(item, BlogPostUrl));
+        });
+    }
+
+    private static void CompanyInfoCard(IContainer container)
+    {
+        container.Background(SoftPanel).Border(1).BorderColor(Hairline).Padding(14).Column(company =>
+        {
+            company.Item().Text("MALIEV Co., Ltd.").FontSize(13).Bold().FontColor(DarkPanel);
+            company.Item().PaddingTop(5).Text("36/1 Moo 3, Khlong Khoi, Pak Kret, Nonthaburi 11120, Thailand").FontSize(9).FontColor(BodyText);
+            company.Item().Text("www.maliev.com | info@maliev.com").FontSize(9).FontColor(BodyText);
+            company.Item().Text("Weekdays 10:00-18:00").FontSize(9).FontColor(BodyText);
+        });
+    }
+
+    private static void ComposeSocialMediaCard(IContainer container)
+    {
+        container.Background(SoftPanel).Border(1).BorderColor(Hairline).Padding(14).Column(social =>
+        {
+            social.Item().Text("Social media").FontSize(13).Bold().FontColor(DarkPanel);
+            social.Item().PaddingTop(5).Text("Follow manufacturing updates and contact the team.").FontSize(8).LineHeight(1.25f).FontColor(Colors.Grey.Darken1);
+
+            foreach (var (channel, label, url) in SocialLinks)
+            {
+                social.Item().PaddingTop(7).Text(text =>
+                {
+                    text.Span($"{channel}: ").FontSize(8).Bold().FontColor(DarkPanel);
+                    text.Hyperlink(label, url).FontSize(8).Underline().FontColor(AccentBlue);
+                });
+            }
         });
     }
 

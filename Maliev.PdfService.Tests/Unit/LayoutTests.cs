@@ -873,6 +873,12 @@ public class LayoutTests
         Assert.Contains("Compare materials", text, StringComparison.Ordinal);
         Assert.Contains("https://quote.maliev.com/projects/new", text, StringComparison.Ordinal);
         Assert.Contains("https://www.maliev.com/materials", text, StringComparison.Ordinal);
+        Assert.Contains("Social media", text, StringComparison.Ordinal);
+        Assert.Contains("LINE", text, StringComparison.Ordinal);
+        Assert.Contains("Official Account @maliev", text, StringComparison.Ordinal);
+        Assert.Contains("Facebook", text, StringComparison.Ordinal);
+        Assert.Contains("YouTube", text, StringComparison.Ordinal);
+        Assert.Contains("Instagram", text, StringComparison.Ordinal);
     }
 
     private static IReadOnlyList<string> ExtractPageText(byte[] pdf)
