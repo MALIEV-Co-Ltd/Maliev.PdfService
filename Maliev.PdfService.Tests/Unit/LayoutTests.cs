@@ -812,6 +812,69 @@ public class LayoutTests
         Assert.Contains("Verify stroke length before purchase.", text, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Tests that a blog practical note PDF contains printable branding, content, and CTA URLs.
+    /// </summary>
+    [Fact]
+    public void BlogPracticalNoteDocument_GeneratesPdf_WithNavigationAndCtas()
+    {
+        // Arrange
+        var document = new BlogPracticalNoteDocument(new BlogPracticalNoteData
+        {
+            Slug = "silicone-master-preparation",
+            Title = "Silicone casting starts with the master",
+            Summary = "The mold repeats the quality and defects of the master pattern.",
+            Category = "Casting",
+            PublicUrl = "https://www.maliev.com/blog/silicone-master-preparation",
+            CoverImage = new BlogPracticalNoteImageData
+            {
+                Alt = "Silicone casting master",
+                Caption = "Start with the master.",
+                Bytes = CreateRgbaPng(2, 2, (_, _) => (byte.MaxValue, (byte)245, (byte)225, byte.MaxValue))
+            },
+            Sections =
+            [
+                new BlogPracticalNoteSectionData
+                {
+                    Title = "Review the mold behavior before the part",
+                    Body = "Casting and molding decisions are affected by draft, wall thickness, gates, vents, shrinkage, bubbles, and master quality.",
+                    Items =
+                    [
+                        "A better master makes a better batch.",
+                        "Fix cosmetic defects before molding."
+                    ],
+                    Image = new BlogPracticalNoteImageData
+                    {
+                        Alt = "Master part",
+                        Caption = "The master defines the batch.",
+                        Bytes = CreateRgbaPng(2, 2, (_, _) => ((byte)80, (byte)120, (byte)180, byte.MaxValue))
+                    }
+                }
+            ],
+            Takeaways =
+            [
+                "A better master makes a better batch.",
+                "Parting lines should be chosen intentionally."
+            ]
+        });
+
+        // Act
+        var pdf = document.GeneratePdf();
+        var text = string.Join(Environment.NewLine, ExtractPageText(pdf));
+
+        // Assert
+        Assert.NotEmpty(pdf);
+        Assert.Contains("MALIEV", text, StringComparison.Ordinal);
+        Assert.Contains("Silicone", text, StringComparison.Ordinal);
+        Assert.Contains("master", text, StringComparison.Ordinal);
+        Assert.Contains("Read before quoting", text, StringComparison.Ordinal);
+        Assert.Contains("Before you upload", text, StringComparison.Ordinal);
+        Assert.Contains("Get part price", text, StringComparison.Ordinal);
+        Assert.Contains("Compare materials", text, StringComparison.Ordinal);
+        Assert.Contains("https://quote.maliev.com/projects/new", text, StringComparison.Ordinal);
+        Assert.Contains("https://www.maliev.com/materials", text, StringComparison.Ordinal);
+    }
+
     private static IReadOnlyList<string> ExtractPageText(byte[] pdf)
     {
         using var stream = new MemoryStream(pdf);

@@ -63,7 +63,9 @@ public enum DocumentType
     /// <summary>Job ticket for shop floor manufacturing work orders.</summary>
     JobTicket,
     /// <summary>Commerce product bill of materials.</summary>
-    CommerceBom
+    CommerceBom,
+    /// <summary>Customer-facing blog practical note booklet.</summary>
+    BlogPracticalNote
 }
 
 /// <summary>

@@ -109,6 +109,39 @@ public class DocumentFactoryTests
     }
 
     /// <summary>
+    /// Tests that CreateDocument returns BlogPracticalNoteDocument.
+    /// </summary>
+    [Fact]
+    public void CreateDocument_BlogPracticalNote_ReturnsBlogPracticalNoteDocument()
+    {
+        // Arrange
+        var data = new BlogPracticalNoteData
+        {
+            Slug = "silicone-master-preparation",
+            Title = "Silicone casting starts with the master",
+            Summary = "The mold repeats the quality and defects of the master pattern.",
+            Category = "Casting",
+            PublicUrl = "https://www.maliev.com/blog/silicone-master-preparation",
+            Sections =
+            [
+                new BlogPracticalNoteSectionData
+                {
+                    Title = "Review the mold behavior before the part",
+                    Body = "Casting and molding decisions are affected by draft and wall thickness.",
+                    Items = ["A better master makes a better batch."]
+                }
+            ],
+            Takeaways = ["A better master makes a better batch."]
+        };
+
+        // Act
+        var doc = _factory.CreateDocument(DocumentType.BlogPracticalNote, data);
+
+        // Assert
+        Assert.IsType<BlogPracticalNoteDocument>(doc);
+    }
+
+    /// <summary>
     /// Tests that MapToInvoiceData returns data from JsonElement.
     /// </summary>
     [Fact]
