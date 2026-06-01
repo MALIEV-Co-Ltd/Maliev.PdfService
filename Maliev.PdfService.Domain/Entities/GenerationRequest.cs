@@ -35,6 +35,9 @@ public class GenerationRequest
     /// <summary>Public URL to the generated file in storage.</summary>
     public string? StorageUrl { get; set; }
 
+    /// <summary>Durable object path used to refresh signed download URLs.</summary>
+    public string? StoragePath { get; set; }
+
     /// <summary>Failure details if status is Failed.</summary>
     public string? ErrorMessage { get; set; }
 

@@ -91,6 +91,7 @@ public class ReceiptPdfRequestedConsumer : IConsumer<ReceiptPdfRequestedEvent>
 
             log.Status = GenerationStatus.Completed;
             log.StorageUrl = url;
+            log.StoragePath = storagePath;
             log.CompletedAt = DateTime.UtcNow;
 
             await _dbContext.SaveChangesAsync();

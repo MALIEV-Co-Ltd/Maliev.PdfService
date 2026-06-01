@@ -74,6 +74,7 @@ public class DeliveryNotePdfRequestedConsumer : IConsumer<DeliveryNotePdfRequest
             // Update generation log
             log.Status = GenerationStatus.Completed;
             log.StorageUrl = url;
+            log.StoragePath = storagePath;
             log.CompletedAt = DateTime.UtcNow;
             await _dbContext.SaveChangesAsync();
 

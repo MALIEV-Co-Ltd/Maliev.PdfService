@@ -80,6 +80,7 @@ public class GenerationController : ControllerBase
 
             log.Status = GenerationStatus.Completed;
             log.StorageUrl = url;
+            log.StoragePath = storagePath;
             log.CompletedAt = DateTime.UtcNow;
 
             await _dbContext.SaveChangesAsync();
@@ -105,7 +106,7 @@ public class GenerationController : ControllerBase
                 )
             ));
 
-            return Ok(new { requestId = log.Id, storageUrl = url });
+            return Ok(new { requestId = log.Id, storageUrl = url, storagePath });
         }
         catch (Exception ex)
         {
@@ -176,8 +177,46 @@ public class GenerationController : ControllerBase
         {
             requestId = generation.Id,
             storageUrl = generation.StorageUrl,
+            storagePath = ResolveStoragePath(generation),
             completedAt = generation.CompletedAt
         });
+    }
+
+    private static string? ResolveStoragePath(GenerationRequest generation)
+    {
+        if (!string.IsNullOrWhiteSpace(generation.StoragePath))
+            return generation.StoragePath;
+
+        return TryExtractStoragePath(generation.StorageUrl);
+    }
+
+    private static string? TryExtractStoragePath(string? storageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(storageUrl))
+            return null;
+
+        if (!Uri.TryCreate(storageUrl, UriKind.Absolute, out var uri))
+            return storageUrl.Contains('/', StringComparison.Ordinal) ? storageUrl : null;
+
+        var path = Uri.UnescapeDataString(uri.AbsolutePath.TrimStart('/'));
+        if (string.IsNullOrWhiteSpace(path))
+            return null;
+
+        var pdfsIndex = path.IndexOf("pdfs/", StringComparison.OrdinalIgnoreCase);
+        if (pdfsIndex >= 0)
+            return path[pdfsIndex..];
+
+        if (string.Equals(uri.Host, "storage.googleapis.com", StringComparison.OrdinalIgnoreCase))
+        {
+            var firstSlash = path.IndexOf('/', StringComparison.Ordinal);
+            return firstSlash >= 0 && firstSlash < path.Length - 1
+                ? path[(firstSlash + 1)..]
+                : null;
+        }
+
+        return string.Equals(uri.Host, "mock-storage.local", StringComparison.OrdinalIgnoreCase)
+            ? path
+            : null;
     }
 
     /// <summary>

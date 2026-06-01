@@ -72,6 +72,7 @@ public class GenerationControllerTests : IAsyncLifetime
     public async Task Generate_ReturnsOk_AndSavesToDb()
     {
         // Arrange
+        const string StoragePath = "pdfs/invoice/REF-001/invoice.pdf";
         var request = new GeneratePdfRequest
         {
             DocumentType = DocumentType.Invoice,
@@ -82,6 +83,8 @@ public class GenerationControllerTests : IAsyncLifetime
 
         _pdfGeneratorMock.Setup(x => x.GeneratePdfAsync(It.IsAny<DocumentType>(), It.IsAny<object>(), "T1"))
             .ReturnsAsync(new byte[] { 1, 2, 3 });
+        _pdfGeneratorMock.Setup(x => x.GetStoragePath(DocumentType.Invoice, "REF-001", It.IsAny<string>()))
+            .Returns(StoragePath);
 
         _uploadServiceMock.Setup(x => x.UploadFileAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("https://storage.com/file.pdf");
@@ -91,6 +94,9 @@ public class GenerationControllerTests : IAsyncLifetime
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
+        var json = JsonSerializer.Serialize(okResult.Value);
+        using var document = JsonDocument.Parse(json);
+        Assert.Equal(StoragePath, document.RootElement.GetProperty("storagePath").GetString());
         var count = await _dbContext.GenerationRequests.CountAsync();
         Assert.Equal(1, count);
         var saved = await _dbContext.GenerationRequests.FirstAsync();
@@ -142,6 +148,7 @@ public class GenerationControllerTests : IAsyncLifetime
                 DocumentType = DocumentType.Quotation,
                 Status = GenerationStatus.Completed,
                 StorageUrl = "https://storage.example/old.pdf",
+                StoragePath = "pdfs/quotation/QT-001/old.pdf",
                 CreatedAt = DateTime.UtcNow.AddMinutes(-10),
                 CompletedAt = DateTime.UtcNow.AddMinutes(-9)
             },
@@ -152,6 +159,7 @@ public class GenerationControllerTests : IAsyncLifetime
                 DocumentType = DocumentType.Quotation,
                 Status = GenerationStatus.Completed,
                 StorageUrl = "https://storage.example/new.pdf",
+                StoragePath = "pdfs/quotation/QT-001/new.pdf",
                 CreatedAt = DateTime.UtcNow.AddMinutes(-2),
                 CompletedAt = DateTime.UtcNow.AddMinutes(-1)
             },
@@ -175,6 +183,37 @@ public class GenerationControllerTests : IAsyncLifetime
         var json = JsonSerializer.Serialize(okResult.Value);
         using var document = JsonDocument.Parse(json);
         Assert.Equal("https://storage.example/new.pdf", document.RootElement.GetProperty("storageUrl").GetString());
+        Assert.Equal("pdfs/quotation/QT-001/new.pdf", document.RootElement.GetProperty("storagePath").GetString());
+    }
+
+    /// <summary>
+    /// Verifies that the latest lookup recovers the durable path from legacy signed GCS URLs.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
+    [Fact]
+    public async Task GetLatest_WithLegacySignedGcsUrl_ReturnsExtractedStoragePath()
+    {
+        // Arrange
+        _dbContext.GenerationRequests.Add(new GenerationRequest
+        {
+            ReferenceId = "QT-LEGACY",
+            TemplateCode = "Quotation",
+            DocumentType = DocumentType.Quotation,
+            Status = GenerationStatus.Completed,
+            StorageUrl = "https://storage.googleapis.com/maliev-dev-uploads/pdfs/quotation/QT-LEGACY/quote.pdf?X-Goog-Signature=expired",
+            CreatedAt = DateTime.UtcNow.AddMinutes(-2),
+            CompletedAt = DateTime.UtcNow.AddMinutes(-1)
+        });
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        var result = await _controller.GetLatest(DocumentType.Quotation, "QT-LEGACY");
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var json = JsonSerializer.Serialize(okResult.Value);
+        using var document = JsonDocument.Parse(json);
+        Assert.Equal("pdfs/quotation/QT-LEGACY/quote.pdf", document.RootElement.GetProperty("storagePath").GetString());
     }
 
     /// <summary>

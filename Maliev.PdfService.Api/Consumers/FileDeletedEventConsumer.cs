@@ -37,7 +37,9 @@ public class FileDeletedEventConsumer : IConsumer<FileDeletedEvent>
         var storagePathPattern = $"%{payload.StoragePath}%";
 
         var requests = await _dbContext.GenerationRequests
-            .Where(r => r.StorageUrl != null && (EF.Functions.Like(r.StorageUrl, fileIdPattern) || EF.Functions.Like(r.StorageUrl, storagePathPattern)))
+            .Where(r =>
+                (r.StorageUrl != null && (EF.Functions.Like(r.StorageUrl, fileIdPattern) || EF.Functions.Like(r.StorageUrl, storagePathPattern))) ||
+                (r.StoragePath != null && EF.Functions.Like(r.StoragePath, storagePathPattern)))
             .ToListAsync();
 
         if (requests.Any())
@@ -45,11 +47,11 @@ public class FileDeletedEventConsumer : IConsumer<FileDeletedEvent>
             foreach (var req in requests)
             {
                 req.StorageUrl = null;
-                // Optionally mark as failed or just clear URL
+                req.StoragePath = null;
             }
 
             await _dbContext.SaveChangesAsync();
-            _logger.LogInformation("Cleared StorageUrl for {Count} PDF generation requests.", requests.Count);
+            _logger.LogInformation("Cleared PDF storage artifacts for {Count} generation requests.", requests.Count);
         }
     }
 }

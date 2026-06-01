@@ -34,6 +34,7 @@ public class PdfDbContext : DbContext
         {
             entity.Property(e => e.DocumentType).HasConversion<string>();
             entity.Property(e => e.Status).HasConversion<string>();
+            entity.Property(e => e.StoragePath).HasMaxLength(1024);
         });
     }
 }
