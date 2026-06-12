@@ -1,4 +1,6 @@
 using Maliev.MessagingContracts.Contracts.Delivery;
+using Maliev.MessagingContracts.Contracts.Pdf;
+using Maliev.MessagingContracts.Contracts.Shared;
 using Maliev.PdfService.Api.Models.Data;
 using Maliev.PdfService.Api.Services;
 using Maliev.PdfService.Infrastructure.Data;
@@ -76,9 +78,6 @@ public class DeliveryNotePdfRequestedConsumer : IConsumer<DeliveryNotePdfRequest
             log.StorageUrl = url;
             log.StoragePath = storagePath;
             log.CompletedAt = DateTime.UtcNow;
-            await _dbContext.SaveChangesAsync();
-
-            _logger.LogInformation("Successfully generated and uploaded PDF for delivery note: {DeliveryNoteId}, URL: {Url}", message.Payload.DeliveryNoteId, url);
         }
         catch (Exception ex)
         {
@@ -88,8 +87,53 @@ public class DeliveryNotePdfRequestedConsumer : IConsumer<DeliveryNotePdfRequest
             log.ErrorMessage = ex.Message;
             log.CompletedAt = DateTime.UtcNow;
 
-            await _dbContext.SaveChangesAsync();
+            await _publishEndpoint.Publish(new PdfGenerationFailedEvent(
+                MessageId: Guid.NewGuid(),
+                MessageName: nameof(PdfGenerationFailedEvent),
+                MessageType: MessageType.Event,
+                MessageVersion: "1.0.0",
+                PublishedBy: "PdfService",
+                ConsumedBy: ["DeliveryService"],
+                CorrelationId: context.CorrelationId ?? Guid.NewGuid(),
+                CausationId: context.MessageId,
+                OccurredAtUtc: DateTimeOffset.UtcNow,
+                IsPublic: false,
+                Payload: new PdfGenerationFailedEventPayload(
+                    RequestId: log.Id.ToString(),
+                    ReferenceId: message.Payload.DeliveryNoteId,
+                    DocumentType: DocumentType.DeliveryNote.ToString(),
+                    ErrorMessage: ex.Message,
+                    FailedAt: DateTimeOffset.UtcNow
+                )
+            ), context.CancellationToken);
+
+            await _dbContext.SaveChangesAsync(context.CancellationToken);
+            return;
         }
+
+        await _publishEndpoint.Publish(new PdfGenerationCompletedEvent(
+            MessageId: Guid.NewGuid(),
+            MessageName: nameof(PdfGenerationCompletedEvent),
+            MessageType: MessageType.Event,
+            MessageVersion: "1.0.0",
+            PublishedBy: "PdfService",
+            ConsumedBy: ["DeliveryService"],
+            CorrelationId: context.CorrelationId ?? Guid.NewGuid(),
+            CausationId: context.MessageId,
+            OccurredAtUtc: DateTimeOffset.UtcNow,
+            IsPublic: false,
+            Payload: new PdfGenerationCompletedEventPayload(
+                RequestId: log.Id.ToString(),
+                ReferenceId: message.Payload.DeliveryNoteId,
+                DocumentType: DocumentType.DeliveryNote.ToString(),
+                StorageUrl: log.StorageUrl!,
+                CompletedAt: DateTimeOffset.UtcNow
+            )
+        ), context.CancellationToken);
+
+        await _dbContext.SaveChangesAsync(context.CancellationToken);
+
+        _logger.LogInformation("Successfully generated and uploaded PDF for delivery note: {DeliveryNoteId}, URL: {Url}", message.Payload.DeliveryNoteId, log.StorageUrl);
     }
 
     /// <summary>
