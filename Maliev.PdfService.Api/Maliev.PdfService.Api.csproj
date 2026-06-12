@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MassTransit.EntityFrameworkCore" Version="[8.5.8, 9.0.0)" />
     <ProjectReference Include="..\Maliev.PdfService.Application\Maliev.PdfService.Application.csproj" />
     <ProjectReference Include="..\Maliev.PdfService.Infrastructure\Maliev.PdfService.Infrastructure.csproj" />
   </ItemGroup>

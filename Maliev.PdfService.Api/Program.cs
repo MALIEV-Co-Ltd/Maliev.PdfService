@@ -4,6 +4,7 @@ using Maliev.Aspire.ServiceDefaults;
 using Maliev.PdfService.Api.Metrics;
 using Maliev.PdfService.Api.Services;
 using Maliev.PdfService.Infrastructure.Data;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Infrastructure;
 
@@ -28,6 +29,12 @@ try
     // --- Messaging ---
     builder.AddMassTransitWithRabbitMq(x =>
     {
+        x.AddEntityFrameworkOutbox<PdfDbContext>(options =>
+        {
+            _ = options.UsePostgres();
+            options.UseBusOutbox();
+        });
+
         x.AddConsumer<Maliev.PdfService.Api.Consumers.InvoiceFinalizedConsumer>();
         x.AddConsumer<Maliev.PdfService.Api.Consumers.FileDeletedEventConsumer>();
         x.AddConsumer<Maliev.PdfService.Api.Consumers.PdfGenerationRequestedConsumer>();

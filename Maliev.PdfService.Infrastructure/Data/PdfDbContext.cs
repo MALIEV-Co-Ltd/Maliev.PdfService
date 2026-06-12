@@ -1,4 +1,5 @@
 using Maliev.PdfService.Domain.Entities;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
 namespace Maliev.PdfService.Infrastructure.Data;
@@ -24,6 +25,10 @@ public class PdfDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
 
         modelBuilder.Entity<PdfTemplate>(entity =>
         {
