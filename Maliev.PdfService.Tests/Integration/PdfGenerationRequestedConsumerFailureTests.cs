@@ -6,6 +6,7 @@ using Maliev.PdfService.Domain.Entities;
 using Maliev.PdfService.Infrastructure.Data;
 using Maliev.PdfService.Tests.Fixtures;
 using MassTransit;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -249,5 +250,80 @@ public class PdfGenerationRequestedConsumerFailureTests : IClassFixture<PdfServi
         var updatedLog = await context.GenerationRequests.FindAsync(requestId);
         Assert.Equal(GenerationStatus.Failed, updatedLog!.Status);
         Assert.Contains("Generation data is missing", updatedLog.ErrorMessage);
+    }
+
+    /// <summary>
+    /// Verifies completion publish failures remain retryable and do not persist a completed terminal state.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
+    [Fact]
+    public async Task Consume_PdfGenerationRequestedEvent_CompletedEventPublishFails_KeepsRequestProcessing()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<PdfDbContext>();
+        var pdfGeneratorMock = new Mock<IPdfGenerator>();
+        var uploadServiceMock = new Mock<IUploadServiceClient>();
+        var publishEndpointMock = new Mock<IPublishEndpoint>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<PdfGenerationRequestedConsumer>>();
+
+        var requestId = Guid.NewGuid();
+        var log = new GenerationRequest
+        {
+            Id = requestId,
+            ReferenceId = "REF-PUBLISH-FAIL",
+            TemplateCode = "INV-STD-01",
+            DocumentType = DocumentType.Invoice,
+            Status = GenerationStatus.Pending,
+            DataJson = "{\"invoiceNumber\":\"INV-001\"}",
+            CreatedAt = DateTime.UtcNow
+        };
+        context.GenerationRequests.Add(log);
+        await context.SaveChangesAsync();
+
+        pdfGeneratorMock
+            .Setup(g => g.GeneratePdfAsync(It.IsAny<DocumentType>(), It.IsAny<object>(), It.IsAny<string?>()))
+            .ReturnsAsync([1, 2, 3]);
+        pdfGeneratorMock
+            .Setup(g => g.GetStoragePath(It.IsAny<DocumentType>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns("pdfs/invoice/REF-PUBLISH-FAIL/invoice.pdf");
+        uploadServiceMock
+            .Setup(s => s.UploadFileAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("https://storage.example/invoice.pdf");
+        publishEndpointMock
+            .Setup(p => p.Publish(It.IsAny<PdfGenerationCompletedEvent>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("completion publish failed"));
+
+        var consumer = new PdfGenerationRequestedConsumer(pdfGeneratorMock.Object, uploadServiceMock.Object, context, publishEndpointMock.Object, logger);
+        var evt = new PdfGenerationRequestedEvent(
+            MessageId: Guid.NewGuid(),
+            MessageName: "PdfGenerationRequestedEvent",
+            MessageType: MessageType.Event,
+            MessageVersion: "1.0",
+            PublishedBy: "Test",
+            ConsumedBy: new[] { "Pdf" },
+            CorrelationId: Guid.NewGuid(),
+            CausationId: null,
+            OccurredAtUtc: DateTimeOffset.UtcNow,
+            IsPublic: true,
+            Payload: new PdfGenerationRequestedEventPayload(
+                RequestId: requestId.ToString(),
+                ReferenceId: "REF-PUBLISH-FAIL",
+                DocumentType: "Invoice",
+                RequestedAt: DateTimeOffset.UtcNow
+            )
+        );
+
+        var mockContext = new Mock<ConsumeContext<PdfGenerationRequestedEvent>>();
+        mockContext.Setup(m => m.Message).Returns(evt);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => consumer.Consume(mockContext.Object));
+
+        var updatedLog = await context.GenerationRequests
+            .AsNoTracking()
+            .SingleAsync(r => r.Id == requestId);
+
+        Assert.Equal(GenerationStatus.Processing, updatedLog.Status);
+        Assert.Null(updatedLog.ErrorMessage);
+        publishEndpointMock.Verify(p => p.Publish(It.IsAny<PdfGenerationFailedEvent>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

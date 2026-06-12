@@ -79,29 +79,6 @@ public class PdfGenerationRequestedConsumer : IConsumer<PdfGenerationRequestedEv
             log.StorageUrl = url;
             log.StoragePath = storagePath;
             log.CompletedAt = DateTime.UtcNow;
-
-            await _dbContext.SaveChangesAsync();
-
-            // Publish PdfGenerationCompletedEvent
-            await _publishEndpoint.Publish(new PdfGenerationCompletedEvent(
-                MessageId: Guid.NewGuid(),
-                MessageName: "PdfGenerationCompletedEvent",
-                MessageType: MessageType.Event,
-                MessageVersion: "1.0.0",
-                PublishedBy: "PdfService",
-                ConsumedBy: ["InvoiceService", "QuotationService", "ReceiptService"],
-                CorrelationId: context.CorrelationId ?? Guid.NewGuid(),
-                CausationId: context.MessageId,
-                OccurredAtUtc: DateTimeOffset.UtcNow,
-                IsPublic: false,
-                Payload: new PdfGenerationCompletedEventPayload(
-                    RequestId: log.Id.ToString(),
-                    ReferenceId: log.ReferenceId,
-                    DocumentType: log.DocumentType.ToString(),
-                    StorageUrl: url,
-                    CompletedAt: DateTimeOffset.UtcNow
-                )
-            ));
         }
         catch (Exception ex)
         {
@@ -110,8 +87,6 @@ public class PdfGenerationRequestedConsumer : IConsumer<PdfGenerationRequestedEv
             log.Status = GenerationStatus.Failed;
             log.ErrorMessage = ex.Message;
             log.CompletedAt = DateTime.UtcNow;
-
-            await _dbContext.SaveChangesAsync();
 
             await _publishEndpoint.Publish(new PdfGenerationFailedEvent(
                 MessageId: Guid.NewGuid(),
@@ -132,6 +107,31 @@ public class PdfGenerationRequestedConsumer : IConsumer<PdfGenerationRequestedEv
                     FailedAt: DateTimeOffset.UtcNow
                 )
             ));
+
+            await _dbContext.SaveChangesAsync();
+            return;
         }
+
+        await _publishEndpoint.Publish(new PdfGenerationCompletedEvent(
+            MessageId: Guid.NewGuid(),
+            MessageName: "PdfGenerationCompletedEvent",
+            MessageType: MessageType.Event,
+            MessageVersion: "1.0.0",
+            PublishedBy: "PdfService",
+            ConsumedBy: ["InvoiceService", "QuotationService", "ReceiptService"],
+            CorrelationId: context.CorrelationId ?? Guid.NewGuid(),
+            CausationId: context.MessageId,
+            OccurredAtUtc: DateTimeOffset.UtcNow,
+            IsPublic: false,
+            Payload: new PdfGenerationCompletedEventPayload(
+                RequestId: log.Id.ToString(),
+                ReferenceId: log.ReferenceId,
+                DocumentType: log.DocumentType.ToString(),
+                StorageUrl: log.StorageUrl!,
+                CompletedAt: DateTimeOffset.UtcNow
+            )
+        ));
+
+        await _dbContext.SaveChangesAsync();
     }
 }
