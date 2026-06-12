@@ -57,31 +57,31 @@ public class ReceiptPdfRequestedConsumer : IConsumer<ReceiptPdfRequestedEvent>
         _dbContext.GenerationRequests.Add(log);
         await _dbContext.SaveChangesAsync();
 
+        var receiptData = new ReceiptData
+        {
+            ReceiptNumber = payload.ReceiptNumber,
+            ReceiptDate = payload.FinancialDetails.IssueDate.UtcDateTime,
+            CustomerName = payload.CustomerDetails.Name,
+            CustomerType = "Corporate",
+            CustomerTaxId = payload.CustomerDetails.TaxId,
+            CustomerAddress = payload.CustomerDetails.Address,
+            PaymentMethod = payload.FinancialDetails.PaymentMethod,
+            Items = payload.LineItems.Select(item => new ReceiptItemData
+            {
+                Index = item.LineNumber,
+                Description = item.Description,
+                Quantity = item.Quantity,
+                UnitPrice = item.UnitPrice,
+                TotalPrice = item.LineTotal
+            }).ToList(),
+            Subtotal = payload.FinancialDetails.Subtotal,
+            TaxAmount = payload.FinancialDetails.TaxAmount,
+            TotalAmount = payload.FinancialDetails.TotalAmount,
+            Currency = payload.FinancialDetails.Currency
+        };
+
         try
         {
-            var receiptData = new ReceiptData
-            {
-                ReceiptNumber = payload.ReceiptNumber,
-                ReceiptDate = payload.FinancialDetails.IssueDate.UtcDateTime,
-                CustomerName = payload.CustomerDetails.Name,
-                CustomerType = "Corporate",
-                CustomerTaxId = payload.CustomerDetails.TaxId,
-                CustomerAddress = payload.CustomerDetails.Address,
-                PaymentMethod = payload.FinancialDetails.PaymentMethod,
-                Items = payload.LineItems.Select(item => new ReceiptItemData
-                {
-                    Index = item.LineNumber,
-                    Description = item.Description,
-                    Quantity = item.Quantity,
-                    UnitPrice = item.UnitPrice,
-                    TotalPrice = item.LineTotal
-                }).ToList(),
-                Subtotal = payload.FinancialDetails.Subtotal,
-                TaxAmount = payload.FinancialDetails.TaxAmount,
-                TotalAmount = payload.FinancialDetails.TotalAmount,
-                Currency = payload.FinancialDetails.Currency
-            };
-
             var pdfBytes = await _pdfGenerator.GeneratePdfAsync(DocumentType.Receipt, receiptData, log.TemplateCode);
 
             var fileName = $"Receipt_{payload.ReceiptNumber}_{Guid.NewGuid()}.pdf";
@@ -93,31 +93,6 @@ public class ReceiptPdfRequestedConsumer : IConsumer<ReceiptPdfRequestedEvent>
             log.StorageUrl = url;
             log.StoragePath = storagePath;
             log.CompletedAt = DateTime.UtcNow;
-
-            await _dbContext.SaveChangesAsync();
-
-            // Publish PdfGenerationCompletedEvent
-            await _publishEndpoint.Publish(new PdfGenerationCompletedEvent(
-                MessageId: Guid.NewGuid(),
-                MessageName: nameof(PdfGenerationCompletedEvent),
-                MessageType: MessageType.Event,
-                MessageVersion: "1.0.0",
-                PublishedBy: "PdfService",
-                ConsumedBy: ["ReceiptService"],
-                CorrelationId: context.CorrelationId ?? Guid.NewGuid(),
-                CausationId: context.MessageId,
-                OccurredAtUtc: DateTimeOffset.UtcNow,
-                IsPublic: false,
-                Payload: new PdfGenerationCompletedEventPayload(
-                    RequestId: log.Id.ToString(),
-                    ReferenceId: payload.ReceiptId.ToString(),
-                    DocumentType: DocumentType.Receipt.ToString(),
-                    StorageUrl: url,
-                    CompletedAt: DateTimeOffset.UtcNow
-                )
-            ));
-
-            _logger.LogInformation("Successfully generated and uploaded PDF for receipt: {ReceiptNumber}", payload.ReceiptNumber);
         }
         catch (Exception ex)
         {
@@ -126,8 +101,6 @@ public class ReceiptPdfRequestedConsumer : IConsumer<ReceiptPdfRequestedEvent>
             log.Status = GenerationStatus.Failed;
             log.ErrorMessage = ex.Message;
             log.CompletedAt = DateTime.UtcNow;
-
-            await _dbContext.SaveChangesAsync();
 
             await _publishEndpoint.Publish(new PdfGenerationFailedEvent(
                 MessageId: Guid.NewGuid(),
@@ -148,6 +121,33 @@ public class ReceiptPdfRequestedConsumer : IConsumer<ReceiptPdfRequestedEvent>
                     FailedAt: DateTimeOffset.UtcNow
                 )
             ));
+
+            await _dbContext.SaveChangesAsync();
+            return;
         }
+
+        await _publishEndpoint.Publish(new PdfGenerationCompletedEvent(
+            MessageId: Guid.NewGuid(),
+            MessageName: nameof(PdfGenerationCompletedEvent),
+            MessageType: MessageType.Event,
+            MessageVersion: "1.0.0",
+            PublishedBy: "PdfService",
+            ConsumedBy: ["ReceiptService"],
+            CorrelationId: context.CorrelationId ?? Guid.NewGuid(),
+            CausationId: context.MessageId,
+            OccurredAtUtc: DateTimeOffset.UtcNow,
+            IsPublic: false,
+            Payload: new PdfGenerationCompletedEventPayload(
+                RequestId: log.Id.ToString(),
+                ReferenceId: payload.ReceiptId.ToString(),
+                DocumentType: DocumentType.Receipt.ToString(),
+                StorageUrl: log.StorageUrl!,
+                CompletedAt: DateTimeOffset.UtcNow
+            )
+        ));
+
+        await _dbContext.SaveChangesAsync();
+
+        _logger.LogInformation("Successfully generated and uploaded PDF for receipt: {ReceiptNumber}", payload.ReceiptNumber);
     }
 }
