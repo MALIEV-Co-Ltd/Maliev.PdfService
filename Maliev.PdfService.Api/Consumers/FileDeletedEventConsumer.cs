@@ -26,6 +26,11 @@ public class FileDeletedEventConsumer : IConsumer<FileDeletedEvent>
     public async Task Consume(ConsumeContext<FileDeletedEvent> context)
     {
         var payload = context.Message.Payload;
+        if (payload is null)
+        {
+            _logger.LogWarning("Ignoring FileDeletedEvent without payload");
+            return;
+        }
 
         _logger.LogInformation("Processing FileDeletedEvent for FileId: {FileId}, StoragePath: {StoragePath}",
             payload.FileId, payload.StoragePath);

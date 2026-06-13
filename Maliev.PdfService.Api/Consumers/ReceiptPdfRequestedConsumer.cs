@@ -42,6 +42,12 @@ public class ReceiptPdfRequestedConsumer : IConsumer<ReceiptPdfRequestedEvent>
     public async Task Consume(ConsumeContext<ReceiptPdfRequestedEvent> context)
     {
         var payload = context.Message.Payload;
+        if (payload is null)
+        {
+            _logger.LogWarning("Ignoring ReceiptPdfRequestedEvent without payload");
+            return;
+        }
+
         _logger.LogInformation("Processing rich PDF generation for receipt: {ReceiptNumber}", payload.ReceiptNumber);
 
         var log = new GenerationRequest

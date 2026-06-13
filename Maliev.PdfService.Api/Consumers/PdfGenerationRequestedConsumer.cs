@@ -40,6 +40,12 @@ public class PdfGenerationRequestedConsumer : IConsumer<PdfGenerationRequestedEv
     public async Task Consume(ConsumeContext<PdfGenerationRequestedEvent> context)
     {
         var payload = context.Message.Payload;
+        if (payload is null)
+        {
+            _logger.LogWarning("Ignoring PdfGenerationRequestedEvent without payload");
+            return;
+        }
+
         _logger.LogInformation("Asynchronously processing PDF generation for request: {RequestId}", payload.RequestId);
 
         var requestId = Guid.Parse(payload.RequestId);
