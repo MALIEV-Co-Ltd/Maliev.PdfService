@@ -134,7 +134,55 @@ public class DeliveryNotePdfRequestedConsumerTests : IClassFixture<PdfServiceTes
             Times.Never);
     }
 
-    private static Mock<ConsumeContext<DeliveryNotePdfRequestedEvent>> CreateConsumeContext(string deliveryNoteId)
+    /// <summary>
+    /// Verifies delivery-note PDF requests routed to another service are ignored.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
+    [Fact]
+    public async Task Consume_DeliveryNotePdfRequestedEvent_NotRoutedToPdfService_SkipsProcessing()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<PdfDbContext>();
+        var pdfGeneratorMock = new Mock<IPdfGenerator>();
+        var uploadServiceMock = new Mock<IUploadServiceClient>();
+        var publishEndpointMock = new Mock<IPublishEndpoint>();
+        var httpClientFactory = CreateDeliveryHttpClientFactory();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<DeliveryNotePdfRequestedConsumer>>();
+
+        var consumer = new DeliveryNotePdfRequestedConsumer(
+            pdfGeneratorMock.Object,
+            uploadServiceMock.Object,
+            context,
+            publishEndpointMock.Object,
+            httpClientFactory.Object,
+            logger);
+        var consumeContext = CreateConsumeContext("DN-PDF-UNROUTED", ["NotificationService"]);
+
+        await consumer.Consume(consumeContext.Object);
+
+        Assert.False(await context.GenerationRequests.AnyAsync(r => r.ReferenceId == "DN-PDF-UNROUTED"));
+        pdfGeneratorMock.Verify(
+            g => g.GeneratePdfAsync(It.IsAny<DocumentType>(), It.IsAny<object>(), It.IsAny<string?>()),
+            Times.Never);
+        uploadServiceMock.Verify(
+            s => s.UploadFileAsync(
+                It.IsAny<string>(),
+                It.IsAny<byte[]>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+        publishEndpointMock.Verify(
+            p => p.Publish(It.IsAny<PdfGenerationCompletedEvent>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        publishEndpointMock.Verify(
+            p => p.Publish(It.IsAny<PdfGenerationFailedEvent>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    private static Mock<ConsumeContext<DeliveryNotePdfRequestedEvent>> CreateConsumeContext(
+        string deliveryNoteId,
+        string[]? consumedBy = null)
     {
         var message = new DeliveryNotePdfRequestedEvent(
             MessageId: Guid.NewGuid(),
@@ -142,7 +190,7 @@ public class DeliveryNotePdfRequestedConsumerTests : IClassFixture<PdfServiceTes
             MessageType: Maliev.MessagingContracts.Contracts.Shared.MessageType.Event,
             MessageVersion: "1.0.0",
             PublishedBy: "DeliveryService",
-            ConsumedBy: ["PdfService"],
+            ConsumedBy: consumedBy ?? ["PdfService"],
             CorrelationId: Guid.NewGuid(),
             CausationId: null,
             OccurredAtUtc: DateTimeOffset.UtcNow,

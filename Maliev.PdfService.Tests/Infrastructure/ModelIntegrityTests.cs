@@ -27,7 +27,7 @@ public class ModelIntegrityTests
     public void Model_ShouldIncludeMassTransitOutboxEntities()
     {
         var options = new DbContextOptionsBuilder<PdfDbContext>()
-            .UseNpgsql("Host=localhost;Database=pdf_model_test;Username=postgres;Password=postgres")
+            .UseNpgsql("Host=localhost;Database=pdf_model_test;Username=test")
             .Options;
 
         using var context = new PdfDbContext(options);

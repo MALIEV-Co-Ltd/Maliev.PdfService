@@ -13,7 +13,8 @@ public class PdfDbContextFactory : IDesignTimeDbContextFactory<PdfDbContext>
     {
         var optionsBuilder = new DbContextOptionsBuilder<PdfDbContext>();
         var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__PdfDbContext")
-            ?? "Host=localhost;Database=pdf-app-db;Username=postgres;Password=postgres";
+            ?? throw new InvalidOperationException(
+                "Set ConnectionStrings__PdfDbContext for design-time EF operations.");
 
         optionsBuilder.UseNpgsql(connectionString);
 

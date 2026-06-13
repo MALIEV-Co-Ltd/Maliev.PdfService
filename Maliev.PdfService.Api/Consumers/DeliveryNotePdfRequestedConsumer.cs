@@ -45,6 +45,15 @@ public class DeliveryNotePdfRequestedConsumer : IConsumer<DeliveryNotePdfRequest
     public async Task Consume(ConsumeContext<DeliveryNotePdfRequestedEvent> context)
     {
         var message = context.Message;
+        if (!message.ConsumedBy.Contains("PdfService", StringComparer.OrdinalIgnoreCase))
+        {
+            _logger.LogDebug(
+                "Skipping delivery note PDF request {DeliveryNoteId} because it is routed to {ConsumedBy}",
+                message.Payload.DeliveryNoteId,
+                string.Join(",", message.ConsumedBy));
+            return;
+        }
+
         _logger.LogInformation("Processing PDF generation for delivery note: {DeliveryNoteId}", message.Payload.DeliveryNoteId);
 
         var log = new GenerationRequest
