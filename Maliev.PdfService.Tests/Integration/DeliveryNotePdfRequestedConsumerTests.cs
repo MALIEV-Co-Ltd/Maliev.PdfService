@@ -79,9 +79,60 @@ public class DeliveryNotePdfRequestedConsumerTests : IClassFixture<PdfServiceTes
                 It.Is<PdfGenerationCompletedEvent>(e =>
                     e.Payload.ReferenceId == "DN-PDF-001" &&
                     e.Payload.DocumentType == DocumentType.DeliveryNote.ToString() &&
-                    e.Payload.StorageUrl == "https://storage.example/delivery-note.pdf"),
+                    e.Payload.StorageUrl == "https://storage.example/delivery-note.pdf" &&
+                    e.ConsumedBy.Contains("DeliveryService", StringComparer.OrdinalIgnoreCase)),
                 It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    /// <summary>
+    /// Verifies delivery note PDF generation failures publish a failed event for DeliveryService.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
+    [Fact]
+    public async Task Consume_DeliveryNotePdfRequestedEvent_GenerationFails_PublishesFailedEvent()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<PdfDbContext>();
+        var pdfGeneratorMock = new Mock<IPdfGenerator>();
+        var uploadServiceMock = new Mock<IUploadServiceClient>();
+        var publishEndpointMock = new Mock<IPublishEndpoint>();
+        var httpClientFactory = CreateDeliveryHttpClientFactory();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<DeliveryNotePdfRequestedConsumer>>();
+
+        pdfGeneratorMock
+            .Setup(g => g.GeneratePdfAsync(DocumentType.DeliveryNote, It.IsAny<object>(), It.IsAny<string?>()))
+            .ThrowsAsync(new InvalidOperationException("delivery note render failed"));
+
+        var consumer = new DeliveryNotePdfRequestedConsumer(
+            pdfGeneratorMock.Object,
+            uploadServiceMock.Object,
+            context,
+            publishEndpointMock.Object,
+            httpClientFactory.Object,
+            logger);
+        var consumeContext = CreateConsumeContext("DN-PDF-GENERATE-FAIL");
+
+        await consumer.Consume(consumeContext.Object);
+
+        var log = await context.GenerationRequests
+            .AsNoTracking()
+            .SingleAsync(r => r.ReferenceId == "DN-PDF-GENERATE-FAIL");
+
+        Assert.Equal(GenerationStatus.Failed, log.Status);
+        Assert.Contains("delivery note render failed", log.ErrorMessage);
+        publishEndpointMock.Verify(
+            p => p.Publish(
+                It.Is<PdfGenerationFailedEvent>(e =>
+                    e.Payload.ReferenceId == "DN-PDF-GENERATE-FAIL" &&
+                    e.Payload.DocumentType == DocumentType.DeliveryNote.ToString() &&
+                    e.Payload.ErrorMessage == "delivery note render failed" &&
+                    e.ConsumedBy.Contains("DeliveryService", StringComparer.OrdinalIgnoreCase)),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        publishEndpointMock.Verify(
+            p => p.Publish(It.IsAny<PdfGenerationCompletedEvent>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     /// <summary>
