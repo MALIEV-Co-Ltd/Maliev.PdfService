@@ -326,4 +326,76 @@ public class PdfGenerationRequestedConsumerFailureTests : IClassFixture<PdfServi
         Assert.Null(updatedLog.ErrorMessage);
         publishEndpointMock.Verify(p => p.Publish(It.IsAny<PdfGenerationFailedEvent>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    /// <summary>
+    /// Verifies a retry after a completed-event publish failure re-publishes completion without regenerating the file.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous test operation.</returns>
+    [Fact]
+    public async Task Consume_PdfGenerationRequestedEvent_ProcessingWithStoredPdf_RePublishesCompletedEvent()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<PdfDbContext>();
+        var pdfGeneratorMock = new Mock<IPdfGenerator>();
+        var uploadServiceMock = new Mock<IUploadServiceClient>();
+        var publishEndpointMock = new Mock<IPublishEndpoint>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<PdfGenerationRequestedConsumer>>();
+
+        var requestId = Guid.NewGuid();
+        var log = new GenerationRequest
+        {
+            Id = requestId,
+            ReferenceId = "REF-RETRY-COMPLETE",
+            TemplateCode = "INV-STD-01",
+            DocumentType = DocumentType.Invoice,
+            Status = GenerationStatus.Processing,
+            DataJson = "{\"invoiceNumber\":\"INV-001\"}",
+            StorageUrl = "https://storage.example/invoice.pdf",
+            StoragePath = "pdfs/invoice/REF-RETRY-COMPLETE/invoice.pdf",
+            CreatedAt = DateTime.UtcNow
+        };
+        context.GenerationRequests.Add(log);
+        await context.SaveChangesAsync();
+
+        var consumer = new PdfGenerationRequestedConsumer(pdfGeneratorMock.Object, uploadServiceMock.Object, context, publishEndpointMock.Object, logger);
+        var evt = new PdfGenerationRequestedEvent(
+            MessageId: Guid.NewGuid(),
+            MessageName: "PdfGenerationRequestedEvent",
+            MessageType: MessageType.Event,
+            MessageVersion: "1.0",
+            PublishedBy: "Test",
+            ConsumedBy: new[] { "Pdf" },
+            CorrelationId: Guid.NewGuid(),
+            CausationId: null,
+            OccurredAtUtc: DateTimeOffset.UtcNow,
+            IsPublic: true,
+            Payload: new PdfGenerationRequestedEventPayload(
+                RequestId: requestId.ToString(),
+                ReferenceId: "REF-RETRY-COMPLETE",
+                DocumentType: "Invoice",
+                RequestedAt: DateTimeOffset.UtcNow
+            )
+        );
+
+        var mockContext = new Mock<ConsumeContext<PdfGenerationRequestedEvent>>();
+        mockContext.Setup(m => m.Message).Returns(evt);
+
+        await consumer.Consume(mockContext.Object);
+
+        var updatedLog = await context.GenerationRequests
+            .AsNoTracking()
+            .SingleAsync(r => r.Id == requestId);
+
+        Assert.Equal(GenerationStatus.Completed, updatedLog.Status);
+        Assert.NotNull(updatedLog.CompletedAt);
+        pdfGeneratorMock.Verify(g => g.GeneratePdfAsync(It.IsAny<DocumentType>(), It.IsAny<object>(), It.IsAny<string?>()), Times.Never);
+        uploadServiceMock.Verify(s => s.UploadFileAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        publishEndpointMock.Verify(
+            p => p.Publish(
+                It.Is<PdfGenerationCompletedEvent>(completedEvent =>
+                    completedEvent.Payload.RequestId == requestId.ToString() &&
+                    completedEvent.Payload.StorageUrl == "https://storage.example/invoice.pdf"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 }

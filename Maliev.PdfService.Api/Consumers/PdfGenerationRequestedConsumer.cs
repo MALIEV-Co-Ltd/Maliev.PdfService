@@ -57,6 +57,21 @@ public class PdfGenerationRequestedConsumer : IConsumer<PdfGenerationRequestedEv
             return;
         }
 
+        if (log.Status == GenerationStatus.Processing &&
+            !string.IsNullOrWhiteSpace(log.StorageUrl))
+        {
+            _logger.LogInformation(
+                "Generation request {RequestId} already has a stored PDF. Re-publishing completion event.",
+                requestId);
+
+            await PublishCompletedEventAsync(log, context);
+
+            log.Status = GenerationStatus.Completed;
+            log.CompletedAt ??= DateTime.UtcNow;
+            await _dbContext.SaveChangesAsync();
+            return;
+        }
+
         if (log.Status != GenerationStatus.Pending)
         {
             _logger.LogInformation("Generation request {RequestId} is already in {Status} status. Skipping.", requestId, log.Status);
@@ -118,6 +133,15 @@ public class PdfGenerationRequestedConsumer : IConsumer<PdfGenerationRequestedEv
             return;
         }
 
+        await PublishCompletedEventAsync(log, context);
+
+        await _dbContext.SaveChangesAsync();
+    }
+
+    private async Task PublishCompletedEventAsync(
+        GenerationRequest log,
+        ConsumeContext<PdfGenerationRequestedEvent> context)
+    {
         await _publishEndpoint.Publish(new PdfGenerationCompletedEvent(
             MessageId: Guid.NewGuid(),
             MessageName: "PdfGenerationCompletedEvent",
@@ -137,7 +161,5 @@ public class PdfGenerationRequestedConsumer : IConsumer<PdfGenerationRequestedEv
                 CompletedAt: DateTimeOffset.UtcNow
             )
         ));
-
-        await _dbContext.SaveChangesAsync();
     }
 }
