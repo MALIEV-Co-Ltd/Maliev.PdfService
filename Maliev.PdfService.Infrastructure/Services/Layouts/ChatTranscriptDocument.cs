@@ -5,6 +5,10 @@ using QuestPDF.Infrastructure;
 
 namespace Maliev.PdfService.Api.Services.Layouts;
 
+/// <summary>
+/// Renders a chat transcript PDF with message bubbles, date headers, and page numbering.
+/// </summary>
+/// <param name="data">The chat transcript data.</param>
 public class ChatTranscriptDocument(ChatTranscriptData data) : IDocument
 {
     private static readonly string UserBubbleBg = Colors.Blue.Lighten5;
@@ -14,8 +18,10 @@ public class ChatTranscriptDocument(ChatTranscriptData data) : IDocument
     private static readonly string MutedText = Colors.Grey.Darken1;
     private static readonly string Hairline = Colors.Grey.Lighten2;
 
+    /// <summary>Gets the underlying chat transcript data used to compose the PDF.</summary>
     public ChatTranscriptData Data { get; } = data;
 
+    /// <inheritdoc />
     public DocumentMetadata GetMetadata() => new()
     {
         Title = $"Chat Transcript — {Data.SessionId}",
@@ -24,6 +30,7 @@ public class ChatTranscriptDocument(ChatTranscriptData data) : IDocument
         Keywords = "MALIEV, Make Studio, chat transcript, customer assistant"
     };
 
+    /// <inheritdoc />
     public void Compose(IDocumentContainer container)
     {
         container.Page(page =>
@@ -91,8 +98,11 @@ public class ChatTranscriptDocument(ChatTranscriptData data) : IDocument
                 if (messageDate != lastDate)
                 {
                     lastDate = messageDate;
-                    content.Item().PaddingVertical(6).AlignCenter().Text(messageDate.ToString("dd MMM yyyy"))
-                        .FontSize(8).Bold().FontColor(MutedText).Background(Colors.Grey.Lighten5).PaddingHorizontal(8).PaddingVertical(3);
+                    content.Item().PaddingVertical(6).Element(c =>
+                    {
+                        c.AlignCenter().Background(Colors.Grey.Lighten5).PaddingHorizontal(8).PaddingVertical(3)
+                            .Text(messageDate.ToString("dd MMM yyyy")).FontSize(8).Bold().FontColor(MutedText);
+                    });
                 }
 
                 content.Item().PaddingBottom(8).Element(c => ComposeMessage(c, message));
