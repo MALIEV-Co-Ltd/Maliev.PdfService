@@ -23,6 +23,7 @@ public class DocumentFactory : IDocumentFactory
             DocumentType.JobTicket => new JobTicketDocument(MapToJobTicketData(data)),
             DocumentType.CommerceBom => new CommerceBomDocument(MapToCommerceBomData(data)),
             DocumentType.BlogPracticalNote => new BlogPracticalNoteDocument(MapToBlogPracticalNoteData(data)),
+            DocumentType.ChatTranscript => new ChatTranscriptDocument(MapToChatTranscriptData(data)),
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
     }
@@ -145,5 +146,20 @@ public class DocumentFactory : IDocumentFactory
         }
 
         throw new InvalidOperationException($"Data must be of type {nameof(BlogPracticalNoteData)} or JsonElement representing it. Actual type: {data?.GetType().Name ?? "null"}");
+    }
+
+    private static ChatTranscriptData MapToChatTranscriptData(object data)
+    {
+        if (data is ChatTranscriptData transcriptData) return transcriptData;
+
+        if (data is System.Text.Json.JsonElement jsonElement)
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<ChatTranscriptData>(jsonElement.GetRawText(), new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            }) ?? throw new InvalidOperationException($"Failed to deserialize {nameof(ChatTranscriptData)} from JsonElement");
+        }
+
+        throw new InvalidOperationException($"Data must be of type {nameof(ChatTranscriptData)} or JsonElement representing it. Actual type: {data?.GetType().Name ?? "null"}");
     }
 }

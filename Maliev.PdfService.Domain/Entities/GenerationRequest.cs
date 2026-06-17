@@ -68,7 +68,9 @@ public enum DocumentType
     /// <summary>Commerce product bill of materials.</summary>
     CommerceBom,
     /// <summary>Customer-facing blog practical note booklet.</summary>
-    BlogPracticalNote
+    BlogPracticalNote,
+    /// <summary>Chat transcript from the Make Studio customer assistant.</summary>
+    ChatTranscript
 }
 
 /// <summary>
