@@ -41,6 +41,7 @@ public class InvoiceServiceClientConsumerTests : IClassFixture<PdfServiceTestFac
         var context = scope.ServiceProvider.GetRequiredService<PdfDbContext>();
         var pdfGenerator = scope.ServiceProvider.GetRequiredService<IPdfGenerator>();
         var uploadService = scope.ServiceProvider.GetRequiredService<IUploadServiceClient>();
+        var publishEndpointMock = new Mock<IPublishEndpoint>();
         var invoiceServiceClientMock = new Mock<IInvoiceServiceClient>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<InvoiceFinalizedConsumer>>();
 
@@ -65,7 +66,13 @@ public class InvoiceServiceClientConsumerTests : IClassFixture<PdfServiceTestFac
         _factory.UploadServiceMock.Setup(s => s.UploadFileAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("http://storage.com/invoice.pdf");
 
-        var consumer = new InvoiceFinalizedConsumer(pdfGenerator, uploadService, context, logger, invoiceServiceClientMock.Object);
+        var consumer = new InvoiceFinalizedConsumer(
+            pdfGenerator,
+            uploadService,
+            context,
+            publishEndpointMock.Object,
+            logger,
+            invoiceServiceClientMock.Object);
 
         var evt = new InvoiceCreatedEvent(
             MessageId: Guid.NewGuid(),

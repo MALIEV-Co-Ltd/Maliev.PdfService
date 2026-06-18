@@ -1,4 +1,6 @@
 using Maliev.MessagingContracts.Contracts.Invoices;
+using Maliev.MessagingContracts.Contracts.Pdf;
+using Maliev.MessagingContracts.Contracts.Shared;
 using Maliev.PdfService.Api.Models.Data;
 using Maliev.PdfService.Api.Services;
 using Maliev.PdfService.Infrastructure.Data;
@@ -15,6 +17,7 @@ public class InvoiceFinalizedConsumer : IConsumer<InvoiceCreatedEvent>
     private readonly IPdfGenerator _pdfGenerator;
     private readonly IUploadServiceClient _uploadService;
     private readonly PdfDbContext _dbContext;
+    private readonly IPublishEndpoint _publishEndpoint;
     private readonly ILogger<InvoiceFinalizedConsumer> _logger;
     private readonly IInvoiceServiceClient _invoiceServiceClient;
 
@@ -25,12 +28,14 @@ public class InvoiceFinalizedConsumer : IConsumer<InvoiceCreatedEvent>
         IPdfGenerator pdfGenerator,
         IUploadServiceClient uploadService,
         PdfDbContext dbContext,
+        IPublishEndpoint publishEndpoint,
         ILogger<InvoiceFinalizedConsumer> logger,
         IInvoiceServiceClient invoiceServiceClient)
     {
         _pdfGenerator = pdfGenerator;
         _uploadService = uploadService;
         _dbContext = dbContext;
+        _publishEndpoint = publishEndpoint;
         _logger = logger;
         _invoiceServiceClient = invoiceServiceClient;
     }
@@ -40,6 +45,12 @@ public class InvoiceFinalizedConsumer : IConsumer<InvoiceCreatedEvent>
     {
         var message = context.Message;
         var payload = message.Payload;
+        if (payload is null)
+        {
+            _logger.LogWarning("Ignoring InvoiceCreatedEvent without payload");
+            return;
+        }
+
         _logger.LogInformation("Processing PDF for created invoice: {InvoiceNumber}", payload.InvoiceNumber);
 
         var log = new GenerationRequest
@@ -97,10 +108,6 @@ public class InvoiceFinalizedConsumer : IConsumer<InvoiceCreatedEvent>
             log.StorageUrl = url;
             log.StoragePath = storagePath;
             log.CompletedAt = DateTime.UtcNow;
-
-            await _dbContext.SaveChangesAsync();
-
-            _logger.LogInformation("Successfully generated and uploaded PDF for invoice: {InvoiceNumber}", payload.InvoiceNumber);
         }
         catch (Exception ex)
         {
@@ -113,5 +120,29 @@ public class InvoiceFinalizedConsumer : IConsumer<InvoiceCreatedEvent>
 
             throw;
         }
+
+        await _publishEndpoint.Publish(new PdfGenerationCompletedEvent(
+            MessageId: Guid.NewGuid(),
+            MessageName: nameof(PdfGenerationCompletedEvent),
+            MessageType: MessageType.Event,
+            MessageVersion: "1.0.0",
+            PublishedBy: "PdfService",
+            ConsumedBy: ["InvoiceService"],
+            CorrelationId: context.CorrelationId ?? Guid.NewGuid(),
+            CausationId: context.MessageId,
+            OccurredAtUtc: DateTimeOffset.UtcNow,
+            IsPublic: false,
+            Payload: new PdfGenerationCompletedEventPayload(
+                RequestId: log.Id.ToString(),
+                ReferenceId: payload.InvoiceId.ToString(),
+                DocumentType: DocumentType.Invoice.ToString(),
+                StorageUrl: log.StorageUrl!,
+                CompletedAt: DateTimeOffset.UtcNow
+            )
+        ), context.CancellationToken);
+
+        await _dbContext.SaveChangesAsync(context.CancellationToken);
+
+        _logger.LogInformation("Successfully generated and uploaded PDF for invoice: {InvoiceNumber}", payload.InvoiceNumber);
     }
 }
