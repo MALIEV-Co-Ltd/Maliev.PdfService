@@ -1,5 +1,7 @@
+using Maliev.MessagingContracts.Contracts.Delivery;
 using Maliev.MessagingContracts.Contracts.Pdf;
 using Maliev.MessagingContracts.Contracts.Receipts;
+using Maliev.MessagingContracts.Contracts.Shared;
 using Maliev.MessagingContracts.Contracts.Uploads;
 using Maliev.PdfService.Api.Consumers;
 using Maliev.PdfService.Api.Services;
@@ -74,6 +76,82 @@ public sealed class PdfConsumerNullPayloadTests
     }
 
     /// <summary>
+    /// Ensures malformed delivery-note PDF requests are ignored before side effects.
+    /// </summary>
+    [Fact]
+    public async Task DeliveryNotePdfRequestedConsumer_WithoutPayload_IsIgnored()
+    {
+        var pdfGenerator = new Mock<IPdfGenerator>();
+        var uploadService = new Mock<IUploadServiceClient>();
+        var publishEndpoint = new Mock<IPublishEndpoint>();
+        var consumer = new DeliveryNotePdfRequestedConsumer(
+            pdfGenerator.Object,
+            uploadService.Object,
+            null!,
+            publishEndpoint.Object,
+            Mock.Of<IHttpClientFactory>(),
+            Mock.Of<ILogger<DeliveryNotePdfRequestedConsumer>>());
+
+        await consumer.Consume(CreateContext(new DeliveryNotePdfRequestedEvent { Payload = null! }).Object);
+
+        pdfGenerator.Verify(
+            generator => generator.GeneratePdfAsync(
+                It.IsAny<DocumentType>(),
+                It.IsAny<object>(),
+                It.IsAny<string?>()),
+            Times.Never);
+        uploadService.Verify(
+            service => service.UploadFileAsync(
+                It.IsAny<string>(),
+                It.IsAny<byte[]>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+        publishEndpoint.Verify(
+            endpoint => endpoint.Publish(It.IsAny<object>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    /// <summary>
+    /// Ensures delivery-note PDF requests without a routing list are ignored before side effects.
+    /// </summary>
+    [Fact]
+    public async Task DeliveryNotePdfRequestedConsumer_WithoutRoutingList_IsIgnored()
+    {
+        var pdfGenerator = new Mock<IPdfGenerator>();
+        var uploadService = new Mock<IUploadServiceClient>();
+        var publishEndpoint = new Mock<IPublishEndpoint>();
+        var consumer = new DeliveryNotePdfRequestedConsumer(
+            pdfGenerator.Object,
+            uploadService.Object,
+            null!,
+            publishEndpoint.Object,
+            Mock.Of<IHttpClientFactory>(),
+            Mock.Of<ILogger<DeliveryNotePdfRequestedConsumer>>());
+
+        await consumer.Consume(CreateContext(CreateDeliveryNotePdfRequestedEvent(null!)).Object);
+
+        pdfGenerator.Verify(
+            generator => generator.GeneratePdfAsync(
+                It.IsAny<DocumentType>(),
+                It.IsAny<object>(),
+                It.IsAny<string?>()),
+            Times.Never);
+        uploadService.Verify(
+            service => service.UploadFileAsync(
+                It.IsAny<string>(),
+                It.IsAny<byte[]>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+        publishEndpoint.Verify(
+            endpoint => endpoint.Publish(It.IsAny<object>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    /// <summary>
     /// Ensures malformed file deletion events are ignored before database access.
     /// </summary>
     [Fact]
@@ -93,5 +171,24 @@ public sealed class PdfConsumerNullPayloadTests
         context.Setup(c => c.Message).Returns(message);
         context.Setup(c => c.CancellationToken).Returns(CancellationToken.None);
         return context;
+    }
+
+    private static DeliveryNotePdfRequestedEvent CreateDeliveryNotePdfRequestedEvent(string[]? consumedBy)
+    {
+        return new DeliveryNotePdfRequestedEvent(
+            MessageId: Guid.NewGuid(),
+            MessageName: nameof(DeliveryNotePdfRequestedEvent),
+            MessageType: MessageType.Event,
+            MessageVersion: "1.0.0",
+            PublishedBy: "DeliveryService",
+            ConsumedBy: consumedBy!,
+            CorrelationId: Guid.NewGuid(),
+            CausationId: null,
+            OccurredAtUtc: DateTimeOffset.UtcNow,
+            IsPublic: false,
+            Payload: new DeliveryNotePdfRequestedEventPayload(
+                DeliveryNoteId: "DN-NULL-ROUTE",
+                RequestedBy: "unit-test",
+                RequestedAt: DateTimeOffset.UtcNow));
     }
 }

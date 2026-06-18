@@ -45,20 +45,27 @@ public class DeliveryNotePdfRequestedConsumer : IConsumer<DeliveryNotePdfRequest
     public async Task Consume(ConsumeContext<DeliveryNotePdfRequestedEvent> context)
     {
         var message = context.Message;
-        if (!message.ConsumedBy.Contains("PdfService", StringComparer.OrdinalIgnoreCase))
+        var payload = message.Payload;
+        if (payload is null)
         {
-            _logger.LogDebug(
-                "Skipping delivery note PDF request {DeliveryNoteId} because it is routed to {ConsumedBy}",
-                message.Payload.DeliveryNoteId,
-                string.Join(",", message.ConsumedBy));
+            _logger.LogWarning("Ignoring DeliveryNotePdfRequestedEvent without payload");
             return;
         }
 
-        _logger.LogInformation("Processing PDF generation for delivery note: {DeliveryNoteId}", message.Payload.DeliveryNoteId);
+        if (!IsRoutedToPdfService(message))
+        {
+            _logger.LogDebug(
+                "Skipping delivery note PDF request {DeliveryNoteId} because it is routed to {ConsumedBy}",
+                payload.DeliveryNoteId,
+                message.ConsumedBy is null ? "(none)" : string.Join(",", message.ConsumedBy));
+            return;
+        }
+
+        _logger.LogInformation("Processing PDF generation for delivery note: {DeliveryNoteId}", payload.DeliveryNoteId);
 
         var log = new GenerationRequest
         {
-            ReferenceId = message.Payload.DeliveryNoteId,
+            ReferenceId = payload.DeliveryNoteId,
             TemplateCode = "DN-STD-01", // Standard delivery note template
             DocumentType = DocumentType.DeliveryNote,
             Status = GenerationStatus.Processing,
@@ -72,15 +79,15 @@ public class DeliveryNotePdfRequestedConsumer : IConsumer<DeliveryNotePdfRequest
         try
         {
             // Fetch delivery note data from DeliveryService
-            var deliveryNoteData = await FetchDeliveryNoteDataAsync(message.Payload.DeliveryNoteId);
+            var deliveryNoteData = await FetchDeliveryNoteDataAsync(payload.DeliveryNoteId, context.CancellationToken);
 
             // Generate PDF
             var pdfBytes = await _pdfGenerator.GeneratePdfAsync(DocumentType.DeliveryNote, deliveryNoteData, log.TemplateCode);
 
             // Upload to storage
-            var fileName = $"DeliveryNote_{message.Payload.DeliveryNoteId}_{Guid.NewGuid()}.pdf";
-            var storagePath = _pdfGenerator.GetStoragePath(DocumentType.DeliveryNote, message.Payload.DeliveryNoteId, fileName);
-            var url = await _uploadService.UploadFileAsync(fileName, pdfBytes, "application/pdf", storagePath);
+            var fileName = $"DeliveryNote_{payload.DeliveryNoteId}_{Guid.NewGuid()}.pdf";
+            var storagePath = _pdfGenerator.GetStoragePath(DocumentType.DeliveryNote, payload.DeliveryNoteId, fileName);
+            var url = await _uploadService.UploadFileAsync(fileName, pdfBytes, "application/pdf", storagePath, context.CancellationToken);
 
             // Update generation log
             log.Status = GenerationStatus.Completed;
@@ -90,7 +97,7 @@ public class DeliveryNotePdfRequestedConsumer : IConsumer<DeliveryNotePdfRequest
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to generate PDF for delivery note: {DeliveryNoteId}", message.Payload.DeliveryNoteId);
+            _logger.LogError(ex, "Failed to generate PDF for delivery note: {DeliveryNoteId}", payload.DeliveryNoteId);
 
             log.Status = GenerationStatus.Failed;
             log.ErrorMessage = ex.Message;
@@ -109,7 +116,7 @@ public class DeliveryNotePdfRequestedConsumer : IConsumer<DeliveryNotePdfRequest
                 IsPublic: false,
                 Payload: new PdfGenerationFailedEventPayload(
                     RequestId: log.Id.ToString(),
-                    ReferenceId: message.Payload.DeliveryNoteId,
+                    ReferenceId: payload.DeliveryNoteId,
                     DocumentType: DocumentType.DeliveryNote.ToString(),
                     ErrorMessage: ex.Message,
                     FailedAt: DateTimeOffset.UtcNow
@@ -133,7 +140,7 @@ public class DeliveryNotePdfRequestedConsumer : IConsumer<DeliveryNotePdfRequest
             IsPublic: false,
             Payload: new PdfGenerationCompletedEventPayload(
                 RequestId: log.Id.ToString(),
-                ReferenceId: message.Payload.DeliveryNoteId,
+                ReferenceId: payload.DeliveryNoteId,
                 DocumentType: DocumentType.DeliveryNote.ToString(),
                 StorageUrl: log.StorageUrl!,
                 CompletedAt: DateTimeOffset.UtcNow
@@ -142,20 +149,20 @@ public class DeliveryNotePdfRequestedConsumer : IConsumer<DeliveryNotePdfRequest
 
         await _dbContext.SaveChangesAsync(context.CancellationToken);
 
-        _logger.LogInformation("Successfully generated and uploaded PDF for delivery note: {DeliveryNoteId}, URL: {Url}", message.Payload.DeliveryNoteId, log.StorageUrl);
+        _logger.LogInformation("Successfully generated and uploaded PDF for delivery note: {DeliveryNoteId}, URL: {Url}", payload.DeliveryNoteId, log.StorageUrl);
     }
 
     /// <summary>
     /// Fetches delivery note data from DeliveryService via HTTP client.
     /// </summary>
-    private async Task<DeliveryNoteData> FetchDeliveryNoteDataAsync(string deliveryNoteId)
+    private async Task<DeliveryNoteData> FetchDeliveryNoteDataAsync(string deliveryNoteId, CancellationToken cancellationToken)
     {
         var httpClient = _httpClientFactory.CreateClient("DeliveryService");
 
-        var response = await httpClient.GetAsync($"/delivery/v1/delivery-notes/{deliveryNoteId}");
+        var response = await httpClient.GetAsync($"/delivery/v1/delivery-notes/{deliveryNoteId}", cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var deliveryNote = await response.Content.ReadFromJsonAsync<DeliveryNoteResponse>();
+        var deliveryNote = await response.Content.ReadFromJsonAsync<DeliveryNoteResponse>(cancellationToken: cancellationToken);
         if (deliveryNote == null)
         {
             throw new InvalidOperationException($"Failed to fetch delivery note {deliveryNoteId} from DeliveryService");
@@ -212,6 +219,12 @@ public class DeliveryNotePdfRequestedConsumer : IConsumer<DeliveryNotePdfRequest
             parts.Add(note.ShippingCountry);
 
         return parts.Count > 0 ? string.Join(", ", parts) : "N/A";
+    }
+
+    private static bool IsRoutedToPdfService(DeliveryNotePdfRequestedEvent message)
+    {
+        return message.ConsumedBy?.Any(consumer =>
+            string.Equals(consumer, "PdfService", StringComparison.OrdinalIgnoreCase)) == true;
     }
 }
 
