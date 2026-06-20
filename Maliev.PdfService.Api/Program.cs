@@ -1,11 +1,13 @@
 #pragma warning disable CA1848 // For improved performance, use the LoggerMessage delegates
 
 using Maliev.Aspire.ServiceDefaults;
+using Maliev.Aspire.ServiceDefaults.IAM;
 using Maliev.PdfService.Api.Metrics;
 using Maliev.PdfService.Api.Services;
 using Maliev.PdfService.Infrastructure.Data;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using QuestPDF.Infrastructure;
 
 // Initialize bootstrap logging
@@ -65,7 +67,8 @@ try
         "InvoiceService",
         sourceServiceName: "pdf");
 
-    // Add DeliveryService HTTP client for fetching delivery note data
+    // Add authenticated DeliveryService HTTP client for fetching delivery note data.
+    builder.Services.TryAddTransient<ServiceAccountAuthenticationHandler>();
     builder.Services.AddHttpClient("DeliveryService", client =>
     {
         var baseUrl = builder.Configuration["Services:DeliveryService:BaseUrl"];
@@ -73,7 +76,15 @@ try
         {
             client.BaseAddress = new Uri(baseUrl);
         }
-    });
+        else
+        {
+            client.BaseAddress = new Uri("https+http://DeliveryService");
+        }
+
+        client.Timeout = TimeSpan.FromSeconds(90);
+    })
+        .AddServiceDiscovery()
+        .AddHttpMessageHandler<ServiceAccountAuthenticationHandler>();
 
     builder.Services.AddScoped<IDocumentFactory, DocumentFactory>();
     builder.Services.AddScoped<IPdfGenerator, PdfGenerator>();
