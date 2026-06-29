@@ -881,6 +881,105 @@ public class LayoutTests
         Assert.Contains("Instagram", text, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Tests that a material datasheet PDF contains printable branding, specifications, guidance, and CTA URLs.
+    /// </summary>
+    [Fact]
+    public void MaterialDatasheetDocument_GeneratesPdf_WithSpecificationsAndCtas()
+    {
+        // Arrange
+        var document = new MaterialDatasheetDocument(new MaterialDatasheetData
+        {
+            Slug = "pa12-nylon",
+            Name = "PA12 nylon",
+            CategoryLabel = "Powder-bed nylon",
+            ProcessLabel = "MJF / SLS",
+            Family = "Powder-bed engineering nylon",
+            PublicUrl = "https://www.maliev.com/materials/pa12-nylon",
+            Disclaimer = "Typical values - final grade confirmed at quotation.",
+            CoverImage = new MaterialDatasheetImageData
+            {
+                Alt = "PA12 nylon part",
+                Caption = "Powder-bed nylon housing.",
+                Bytes = CreateRgbaPng(2, 2, (_, _) => (byte.MaxValue, (byte)245, (byte)225, byte.MaxValue))
+            },
+            Specs =
+            [
+                new MaterialDatasheetSpecData { Label = "Tensile strength", Value = "~48 MPa", Note = "ISO 527 (typical)" },
+                new MaterialDatasheetSpecData { Label = "Elongation at break", Value = "~15 %" }
+            ],
+            Bands =
+            [
+                new MaterialDatasheetBandData { Label = "Best fit", Value = "Functional prototypes, housings, clips" },
+                new MaterialDatasheetBandData { Label = "Heat", Value = "Up to ~80 C continuous" }
+            ],
+            Pros = "Tough, isotropic, good chemical resistance.",
+            Cons = "Porous as-printed; dye for color consistency."
+        });
+
+        // Act
+        var pdf = document.GeneratePdf();
+        var text = string.Join(Environment.NewLine, ExtractPageText(pdf));
+
+        // Assert
+        Assert.NotEmpty(pdf);
+        Assert.Contains("MALIEV", text, StringComparison.Ordinal);
+        Assert.Contains("PA12 nylon", text, StringComparison.Ordinal);
+        Assert.Contains("Material Datasheet", text, StringComparison.Ordinal);
+        Assert.Contains("Specifications", text, StringComparison.Ordinal);
+        Assert.Contains("Tensile strength", text, StringComparison.Ordinal);
+        Assert.Contains("~48 MPa", text, StringComparison.Ordinal);
+        Assert.Contains("ISO 527 (typical)", text, StringComparison.Ordinal);
+        Assert.Contains("Selection guidance", text, StringComparison.Ordinal);
+        Assert.Contains("Best fit", text, StringComparison.Ordinal);
+        Assert.Contains("Pros", text, StringComparison.Ordinal);
+        Assert.Contains("Watch / check before use", text, StringComparison.Ordinal);
+        Assert.Contains("Typical values - final grade confirmed at quotation.", text, StringComparison.Ordinal);
+        Assert.Contains("https://www.maliev.com/materials/pa12-nylon", text, StringComparison.Ordinal);
+        Assert.Contains("Get part price", text, StringComparison.Ordinal);
+        Assert.Contains("Compare materials", text, StringComparison.Ordinal);
+        Assert.Contains("https://quote.maliev.com/projects/new", text, StringComparison.Ordinal);
+        Assert.Contains("https://www.maliev.com/materials", text, StringComparison.Ordinal);
+        Assert.Contains("Social media", text, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Tests that a material datasheet PDF renders for Thai-culture content via the bilingual font fallback.
+    /// </summary>
+    [Fact]
+    public void MaterialDatasheetDocument_GeneratesPdf_WithThaiCulture()
+    {
+        // Arrange
+        var document = new MaterialDatasheetDocument(new MaterialDatasheetData
+        {
+            Slug = "pa12-nylon",
+            CultureName = "th-TH",
+            Name = "ไนลอน PA12",
+            CategoryLabel = "ไนลอนเพาเดอร์เบด",
+            ProcessLabel = "MJF / SLS",
+            Family = "ไนลอนวิศวกรรมแบบเพาเดอร์เบด",
+            PublicUrl = "https://www.maliev.com/th/materials/pa12-nylon",
+            Disclaimer = "ค่าทั่วไป - ยืนยันเกรดสุดท้ายเมื่อเสนอราคา",
+            Specs =
+            [
+                new MaterialDatasheetSpecData { Label = "ความแข็งแรงดึง", Value = "~48 MPa", Note = "ISO 527" }
+            ],
+            Bands =
+            [
+                new MaterialDatasheetBandData { Label = "เหมาะสำหรับ", Value = "ต้นแบบใช้งานจริง ชิ้นส่วนเปลือก" }
+            ],
+            Pros = "เหนียว ทนสารเคมีได้ดี",
+            Cons = "ผิวพรุนหลังพิมพ์ ควรย้อมสีเพื่อความสม่ำเสมอ"
+        });
+
+        // Act
+        var pdf = document.GeneratePdf();
+
+        // Assert
+        Assert.NotNull(pdf);
+        Assert.NotEmpty(pdf);
+    }
+
     private static IReadOnlyList<string> ExtractPageText(byte[] pdf)
     {
         using var stream = new MemoryStream(pdf);

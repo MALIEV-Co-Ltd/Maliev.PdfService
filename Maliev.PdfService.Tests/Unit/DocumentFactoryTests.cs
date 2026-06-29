@@ -142,6 +142,41 @@ public class DocumentFactoryTests
     }
 
     /// <summary>
+    /// Tests that CreateDocument returns MaterialDatasheetDocument.
+    /// </summary>
+    [Fact]
+    public void CreateDocument_MaterialDatasheet_ReturnsMaterialDatasheetDocument()
+    {
+        // Arrange
+        var data = new MaterialDatasheetData
+        {
+            Slug = "pa12-nylon",
+            Name = "PA12 nylon",
+            CategoryLabel = "Powder-bed nylon",
+            ProcessLabel = "MJF / SLS",
+            Family = "Powder-bed engineering nylon",
+            PublicUrl = "https://www.maliev.com/materials/pa12-nylon",
+            Disclaimer = "Typical values - final grade confirmed at quotation.",
+            Specs =
+            [
+                new MaterialDatasheetSpecData { Label = "Tensile strength", Value = "~48 MPa", Note = "ISO 527 (typical)" }
+            ],
+            Bands =
+            [
+                new MaterialDatasheetBandData { Label = "Best fit", Value = "Functional prototypes, housings" }
+            ],
+            Pros = "Tough, isotropic, good chemical resistance.",
+            Cons = "Porous as-printed; dye for color consistency."
+        };
+
+        // Act
+        var doc = _factory.CreateDocument(DocumentType.MaterialDatasheet, data);
+
+        // Assert
+        Assert.IsType<MaterialDatasheetDocument>(doc);
+    }
+
+    /// <summary>
     /// Tests that MapToInvoiceData returns data from JsonElement.
     /// </summary>
     [Fact]
