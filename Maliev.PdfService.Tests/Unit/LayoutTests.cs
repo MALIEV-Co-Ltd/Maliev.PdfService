@@ -980,6 +980,62 @@ public class LayoutTests
         Assert.NotEmpty(pdf);
     }
 
+    /// <summary>
+    /// Tests that Make Studio chat transcripts render as a timeline with customer-safe markdown text.
+    /// </summary>
+    [Fact]
+    public void ChatTranscriptDocument_RendersTimelineMarkdownAndOmitsToolTraces()
+    {
+        // Arrange
+        var document = new ChatTranscriptDocument(new ChatTranscriptData
+        {
+            SessionId = "6759e7c8-757d-47db-81c1-9e8b85842fa6",
+            CustomerName = "Nattapong",
+            Language = "en",
+            GeneratedAt = DateTimeOffset.Parse("2026-07-08T01:43:00+07:00"),
+            Messages =
+            [
+                new ChatMessageData
+                {
+                    Role = "user",
+                    Content = "Yes, please continue.",
+                    Timestamp = DateTimeOffset.Parse("2026-07-08T08:43:20+07:00")
+                },
+                new ChatMessageData
+                {
+                    Role = "assistant",
+                    Content = """
+Tool Call: tools.quote_acknowledge_dfm_findings
+{
+  "findings_acknowledged": "All findings are acknowledged."
+}
+Tool Result: Success
+
+**Acknowledged**
+- I will continue.
+- I will prepare the quotation.
+""",
+                    Timestamp = DateTimeOffset.Parse("2026-07-08T08:43:22+07:00")
+                }
+            ]
+        });
+
+        // Act
+        var text = string.Join(Environment.NewLine, ExtractPageText(document.GeneratePdf()));
+
+        // Assert
+        Assert.Contains("Chat Transcript", text, StringComparison.Ordinal);
+        Assert.Contains("Make Studio Customer Assistant", text, StringComparison.Ordinal);
+        Assert.Contains("Nattapong", text, StringComparison.Ordinal);
+        Assert.Contains("MALIEV Assistant", text, StringComparison.Ordinal);
+        Assert.Contains("Acknowledged", text, StringComparison.Ordinal);
+        Assert.Contains("I will continue.", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Tool Call:", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Tool Result:", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("tools.quote_acknowledge_dfm_findings", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("**Acknowledged**", text, StringComparison.Ordinal);
+    }
+
     private static IReadOnlyList<string> ExtractPageText(byte[] pdf)
     {
         using var stream = new MemoryStream(pdf);
