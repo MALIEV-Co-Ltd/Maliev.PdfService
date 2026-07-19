@@ -1,0 +1,8 @@
+.git
+.gitignore
+.ci-sources
+**/bin
+**/obj
+TestResults
+*.user
+*.suo
