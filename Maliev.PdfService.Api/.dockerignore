@@ -1,0 +1,12 @@
+**/.git
+**/.vs
+**/.vscode
+**/bin
+**/obj
+**/TestResults
+**/specs
+**/.gemini
+**/.claude
+**/*.md
+**/.specify
+Maliev.PdfService.Tests/

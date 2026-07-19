@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Maliev.PdfService.Api/Maliev.PdfService.Api.csproj" />
+  <Project Path="Maliev.PdfService.Application/Maliev.PdfService.Application.csproj" />
+  <Project Path="Maliev.PdfService.Domain/Maliev.PdfService.Domain.csproj" />
+  <Project Path="Maliev.PdfService.Infrastructure/Maliev.PdfService.Infrastructure.csproj" />
+  <Project Path="Maliev.PdfService.Tests/Maliev.PdfService.Tests.csproj" />
+</Solution>
