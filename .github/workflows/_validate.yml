@@ -21,18 +21,18 @@ jobs:
       artifact-digest: ${{ steps.upload.outputs.artifact-digest }}
     steps:
       - name: Checkout PdfService source
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Checkout exact MessagingContracts source
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: MALIEV-Co-Ltd/Maliev.MessagingContracts
           ref: 71d11dc093fb34ab41263d395c45629203cdbf18
           path: .ci-sources/Maliev.MessagingContracts
           persist-credentials: false
       - name: Checkout exact ServiceDefaults source
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: MALIEV-Co-Ltd/Maliev.Aspire
           ref: fb457bde0f3a0e5a01f767c88b942b2ccb8d7c61
@@ -62,7 +62,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout source
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Set up .NET
@@ -102,7 +102,7 @@ jobs:
       IMAGE_TAG: maliev-pdf-service:validation-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Checkout source
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Download exact dependency packages
